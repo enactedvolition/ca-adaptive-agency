@@ -23,7 +23,40 @@ New `sim4.py` knobs:
 
 Seven variants × 3 seeds, N = 2048 slots, 3000 steps: full, shuffled, no_cost, static_env, pe, lamcost, pe_lamcost. Perturbations follow the Exp 3 protocol, from full-state forks at step 2500.
 
-RESULTS_PLACEHOLDER
+**Verdict: paying for regulation did not produce regulation.** Every variant, both arms included, lands in the same row of the decision rule: selection dominates and recovery is passive, which the rule labels **stable inherited dynamics**. No arm makes the closed loop beat passive replay.
+
+- **Kick ε = 0.1, closed − open-loop log r(50)** (positive means the closed loop is worse):
+
+  | variant | closed − open [95% CI] |
+  |---|---|
+  | full | +15.0 [+7.9, +22.1] |
+  | pe | +17.5 [+9.7, +25.3] |
+  | lamcost | +18.5 [+8.9, +28.1] |
+  | pe_lamcost | +18.3 [+13.2, +23.5] |
+
+  Open-loop and frozen replays contract kicks by e^-15 to e^-21. The closed loop stays at order ε.
+- **Ongoing noise, log(closed/open) over steps 50–100:**
+
+  | variant | log(closed/open) [95% CI] |
+  |---|---|
+  | full | +2.74 [+2.55, +2.94] |
+  | pe | +3.12 [+2.25, +3.99] |
+  | lamcost | +3.24 [+1.85, +4.62] |
+  | pe_lamcost | +3.38 [+2.34, +4.42] |
+
+- **Arms vs full, paired by seed:** no arm improves on full. lamcost is borderline *worse* on kicks: +3.45 [−0.03, +6.94]. Only no_cost and static_env, the starvation-free controls, are less amplifying.
+- **Price decomposition, cumulative over 3000 steps:**
+  - Under standardized inputs, S dominates and W ≈ 0 in every variant. For lamcost, S = −1.00 [−2.23, +0.22] and W = −0.008.
+  - Under actual inputs, within-life drift W is negative in every variant except lamcost, where W = −0.28 [−0.79, +0.22] and S+T dominates in 2 of 3 seeds.
+  - lamcost has the most ordered population (Δλ̄ = −1.01 [−2.02, −0.004]).
+  - Identity residual: ≤ 1e-15 for trait (b); ≤ 7e-6 for trait (a), which is float32 accumulation.
+- **Why the cost did nothing:**
+  - Selection had already made the brains ordered (λ < 0), so a cost on *positive* stretch rarely triggers. Late per-step energy spend is 0.018–0.020 in both full and lamcost.
+  - The PE input is sensed, but nothing selects for using it.
+  - The extra recovery cost is |Δ| ≤ 0.017 energy over 100 steps.
+- **Next:** charge the cost on prediction error itself rather than on λ > 0; use a changing task where fast re-adaptation pays; run more seeds and longer runs.
+
+Figures: [figures/exp4](figures/exp4) (`price4_cumulative.png`, `lambda4_traj.png`, `perturb4_recovery.png`, `perturb4_arms.png`). Full tables: `figures/exp4/tables4.md`.
 
 ## Reproduce
 ```bash
