@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+mvp/runs*/
+mvp/out*/
+*.mp4
+*.log
+*.npz
+*.pkl
+*.zarr
