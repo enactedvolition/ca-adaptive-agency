@@ -1,0 +1,7 @@
+# NVIDIA GPU on Linux or WSL2 only (native Windows has no CUDA JAX wheels).
+# Needs a recent NVIDIA driver; the CUDA libraries come from pip.
+#   pip install -r requirements-gpu.txt
+# Check: python -c "import jax; print(jax.devices())"  ->  [CudaDevice(id=0)]
+-r requirements.txt
+jax[cuda12]==0.11.2
+# macOS: CPU wheels are used; Apple Metal (jax-metal) is experimental and not supported here.

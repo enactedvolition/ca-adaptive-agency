@@ -8,3 +8,8 @@ mvp/out*/
 *.npz
 *.pkl
 *.zarr
+out_smoke/
+out_demo/
+runs/
+out/
+.pytest_cache/

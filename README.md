@@ -6,6 +6,22 @@ The question is whether anything here earns the words **edge of chaos**, **agenc
 
 Design and full results: [`ARCHITECTURE.md`](ARCHITECTURE.md). Licence: Apache-2.0.
 
+## Quickstart
+
+You need Python 3.11–3.13. No GPU is needed.
+
+| | one-liner |
+|---|---|
+| **Windows** (PowerShell) | `git clone https://github.com/enactedvolition/ca-adaptive-agency; cd ca-adaptive-agency; .\run.bat` |
+| **Mac / Linux** | `git clone https://github.com/enactedvolition/ca-adaptive-agency && cd ca-adaptive-agency && ./setup.sh && ./run.sh` |
+
+- `setup.sh` / `setup.ps1` create `.venv`, install the pinned `requirements.txt` (CPU JAX), and run the smoke test. The smoke test is a tiny world of 100 steps that takes a few seconds and writes `out_smoke/frame.png`.
+- `run.sh` / `run.bat` run a short demo, about 30 s on CPU: 1024 agent slots for 1500 steps. It writes `out_demo/frame.png` and `out_demo/demo.gif` and opens the GIF. `run.bat` runs the setup first if it hasn't been done.
+- Make targets: `make setup | smoke | run | test`.
+- NVIDIA GPU (Linux or WSL2): `./setup.sh gpu`, which uses `requirements-gpu.txt`. Native Windows and macOS run on CPU.
+- VS Code / Codespaces: open the folder in the dev container (`.devcontainer/`).
+- Windows script error ("running scripts is disabled"): `run.bat` already bypasses it. For setup alone, run `powershell -ExecutionPolicy Bypass -File setup.ps1`.
+
 ## Results so far
 
 | experiment | question | answer |
@@ -60,7 +76,7 @@ Figures: [figures/exp4](figures/exp4) (`price4_cumulative.png`, `lambda4_traj.pn
 
 ## Reproduce
 ```bash
-python -m venv .venv && .venv/bin/pip install "jax[cpu]" numpy scipy matplotlib zarr
+./setup.sh   # or setup.ps1 on Windows
 cd mvp
 ../.venv/bin/python exp2.py main --out runs2/main --seeds 3 --steps 4000 --batch 3 --procs 6 && ../.venv/bin/python analyze2.py
 ../.venv/bin/python exp3_price.py bank && ../.venv/bin/python exp3_price.py replay --procs 6 && ../.venv/bin/python exp3_perturb.py --procs 6 && ../.venv/bin/python analyze3.py
