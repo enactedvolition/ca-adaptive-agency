@@ -29,7 +29,8 @@ You need Python 3.11–3.13. No GPU is needed.
 | v1 (`sim.py`) | Does anything agent-like beat controls? | MVP world and visualizations ([figures/v1](figures/v1)) |
 | v2 (`sim2.py`, `exp2.py`) | Edge of chaos? Agency? Dark rooms? | **No criticality.** Energy cost drives brains into order (median λ_max −0.16 → −0.70). Agency metrics beat no control in 0/16 cells. Dark rooms appear only when depletion or cost is removed; walls cut surprisal by ~4 nats but aren't selected for ([figures/v2](figures/v2)). |
 | Exp 3 (`exp3_price.py`, `exp3_perturb.py`) | Is the ordered regime held by individuals or by turnover? | **Turnover.** An exact Price decomposition shows selection dominating. Perturbations decay passively under open-loop and frozen inputs, but the closed behavioural loop *amplifies* kicks (closed − open log r(50) ≈ +13 to +16, CI > 0). This is population sorting into stable inherited dynamics, not individual regulation ([figures/exp3](figures/exp3)). |
-| Exp 4 (`sim4.py`, `exp4_*.py`) | Make regulation pay: (a) agents sense their own prediction error, (b) instability costs energy | see below |
+| Exp 4 (`sim4.py`, `exp4_*.py`) | Make regulation pay: (a) agents sense their own prediction error, (b) instability costs energy | **No** (see below) |
+| Exp 5 (`sim5.py`, `exp5_*.py`) | Make regulation pay by charging for prediction error in a switching world | **No.** Still passive recovery; no variant's closed loop beats replay (see below) |
 
 ## Experiment 4: make regulation pay
 
@@ -74,6 +75,54 @@ Seven variants × 3 seeds, N = 2048 slots, 3000 steps: full, shuffled, no_cost, 
 
 Figures: [figures/exp4](figures/exp4) (`price4_cumulative.png`, `lambda4_traj.png`, `perturb4_recovery.png`, `perturb4_arms.png`). Full tables: `figures/exp4/tables4.md`.
 
+## Experiment 5: charge energy for prediction error, in a changing world
+
+New `sim5.py` knobs (with both off, `sim5` reproduces `sim4` exactly):
+- `pe_cost`: energy cost of 0.01 × the instantaneous mean squared error of the agent's own next-input predictor (which reads its hidden state), charged every step after a 10-step warm-up. In calibration it added about a quarter to a third to per-step spend.
+- `sw_period`: the resource layout cycles through 4 patch layouts every 300 steps, so food moves and fast re-adaptation pays.
+
+Seven variants × 3 seeds, N = 2048 slots, 3000 steps: sw_full, sw_pe, sw_pecost, sw_pecost_pe (main arm), pecost_pe_static (no switching), sw_pecost_pe_shuffled, sw_no_cost. Same Price and perturbation protocols as Exp 4 (forks at step 2500).
+
+**Charging for prediction error did not produce regulation either.** No variant's closed loop beats passive (open-loop or frozen-input) replay, so the decision rule gives no agency label.
+
+- **Kick ε = 0.1, closed − open-loop log r(50), and ongoing noise log(closed/open), steps 50–100** (positive = closed loop worse):
+
+  | variant | closed − open [95% CI] | ongoing [95% CI] | decision-rule label |
+  |---|---|---|---|
+  | sw_full | +16.78 [+10.96, +22.60] | +3.19 [+1.89, +4.48] | stable inherited dynamics |
+  | sw_pe | +16.90 [+13.43, +20.38] | +3.22 [+1.89, +4.55] | stable inherited dynamics |
+  | sw_pecost | +19.18 [+14.16, +24.20] | +3.28 [+1.33, +5.23] | stable inherited dynamics |
+  | sw_pecost_pe | +17.77 [+13.28, +22.27] | +3.28 [+2.01, +4.56] | stable inherited dynamics |
+  | pecost_pe_static | +17.64 [+10.33, +24.95] | +3.06 [+1.06, +5.07] | stable inherited dynamics |
+  | sw_pecost_pe_shuffled | +20.27 [+13.77, +26.78] | +3.59 [+2.47, +4.70] | stable inherited dynamics |
+  | sw_no_cost | +11.23 [+10.50, +11.95] | +2.00 [+1.71, +2.28] | stable inherited dynamics |
+
+- **Paired contrasts by seed** (negative = first arm regulates better):
+
+  | contrast | cond | Δ(closed − open) |
+  |---|---|---|
+  | sw_pe vs sw_full | kick0.1 | +0.12 [-4.05, +4.28] |
+  | sw_pe vs sw_full | ongoing | -0.07 [-1.36, +1.23] |
+  | sw_pecost vs sw_full | kick0.1 | +2.40 [+0.85, +3.95] |
+  | sw_pecost vs sw_full | ongoing | -0.29 [-1.07, +0.49] |
+  | sw_pecost_pe vs sw_full | kick0.1 | +0.99 [-1.36, +3.34] |
+  | sw_pecost_pe vs sw_full | ongoing | -0.09 [-0.92, +0.73] |
+  | sw_pecost_pe_shuffled vs sw_full | kick0.1 | +3.49 [-6.37, +13.35] |
+  | sw_pecost_pe_shuffled vs sw_full | ongoing | +0.21 [-0.19, +0.60] |
+  | sw_no_cost vs sw_full | kick0.1 | -5.55 [-10.98, -0.13] |
+  | sw_no_cost vs sw_full | ongoing | -0.65 [-2.65, +1.35] |
+  | sw_pecost_pe vs pecost_pe_static | kick0.1 | +0.13 [-3.55, +3.81] |
+  | sw_pecost_pe vs pecost_pe_static | ongoing | +0.17 [-1.05, +1.40] |
+  | sw_pecost_pe vs sw_pecost_pe_shuffled | kick0.1 | -2.50 [-10.03, +5.03] |
+  | sw_pecost_pe vs sw_pecost_pe_shuffled | ongoing | -0.30 [-1.24, +0.65] |
+  | sw_pecost_pe vs sw_pe | kick0.1 | +0.87 [-1.01, +2.76] |
+  | sw_pecost_pe vs sw_pe | ongoing | -0.03 [-0.51, +0.46] |
+
+- Late prediction-error MSE per step: sw_full 0.738, sw_pecost_pe 0.614, pecost_pe_static 0.644, shuffled 0.713.
+- Price identity residual: max 1.9e-15 (standardized inputs), 1.9e-06 (actual inputs).
+
+Figures: [figures/exp5](figures/exp5). Full tables, including the Price decomposition and post-switch re-adaptation: `figures/exp5/tables5.md`. Generated automatically by `mvp/finalize5.py` from `report5.json`.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
@@ -81,6 +130,7 @@ cd mvp
 ../.venv/bin/python exp2.py main --out runs2/main --seeds 3 --steps 4000 --batch 3 --procs 6 && ../.venv/bin/python analyze2.py
 ../.venv/bin/python exp3_price.py bank && ../.venv/bin/python exp3_price.py replay --procs 6 && ../.venv/bin/python exp3_perturb.py --procs 6 && ../.venv/bin/python analyze3.py
 ../.venv/bin/python exp4_price.py bank && ../.venv/bin/python exp4_price.py run --procs 7 && ../.venv/bin/python exp4_perturb.py --procs 8 && ../.venv/bin/python analyze4.py
+../.venv/bin/python exp5_price.py bank && ../.venv/bin/python exp5_price.py run --procs 5 && ../.venv/bin/python exp5_perturb.py --procs 5 && ../.venv/bin/python analyze5.py
 ```
 Long runs checkpoint to disk, one file per batch, so they can be resumed. Run dumps (`runs*/`) and videos aren't in the repo because of their size.
 
