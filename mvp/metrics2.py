@@ -93,16 +93,17 @@ def f_var(amp, W, theta, k_theta, k_wall):
 
 REGIMES = ["explore", "settled-noisy", "dark: natural", "dark: other-built", "dark: self-built"]
 
-def regimes(snap, cfg, env_var, Amap, v_term):
+def regimes(snap, cfg, env_var, Amap, v_term, res_min=100, spd_frac=0.2):
     """Per-agent behavioural regime.
-      resident = residence >= 100 steps and speed < 0.2 * terminal speed
+      resident = residence >= res_min steps and speed < spd_frac * terminal speed
+               (defaults res_min=100, spd_frac=0.2 match v2 / Exp 7)
       quiet    = analytic local fluctuation variance < 0.5 * map-mean undamped variance
       dark: natural    resident & quiet even with walls removed (passive dark-rooming)
       dark: self-built resident & quiet, but NOT quiet if this agent's own recent deposits are removed (counterfactual)
       dark: other-built resident & quiet only because of walls others left (kin or not)
     Returns int codes (-1 = undefined when env_var == 0)."""
     n = len(snap["uid"])
-    resident = (snap["res"] >= 100) & (snap["spd"] < 0.2 * v_term)
+    resident = (snap["res"] >= res_min) & (snap["spd"] < spd_frac * v_term)
     code = np.where(resident, 1, 0)
     if env_var <= 0:
         return np.where(resident, -1, 0)
