@@ -1,0 +1,15 @@
+{
+ "attr_off": {
+  "n_fields": 52,
+  "mismatched": [],
+  "bit_for_bit": true
+ },
+ "attr_on": {
+  "n_fields": 52,
+  "mismatched": [],
+  "bit_for_bit": true
+ },
+ "attr_residual": 7.297868698746578e-07,
+ "steps": 300,
+ "variant": "sw_pecost_pe"
+}
