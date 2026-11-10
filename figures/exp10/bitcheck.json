@@ -1,0 +1,15 @@
+{
+ "sw_full": {
+  "n_fields": 54,
+  "mismatched": [],
+  "bit_for_bit": true
+ },
+ "sw_pecost_pe": {
+  "n_fields": 54,
+  "mismatched": [],
+  "bit_for_bit": true
+ },
+ "guard_changes_dynamics": true,
+ "mean_claim_guard_300": 0.07632552087306976,
+ "steps": 300
+}
