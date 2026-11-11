@@ -1,0 +1,101 @@
+# sim10 — field-mediated "microbial ecology" world (design + pre-specified detectors)
+
+Written **before** any tuning run (see git history: this file is committed before `runs10` exists).
+Request (EV, 2026-11-11): richer per-agent parameters, a shared read/write N×N multi-channel field that
+interaction goes through, tuned toward the organisational range of immune-system microbiology
+(virus-like → eukaryote-like). Categories are **not** hard-coded; every entity runs the same rules with a
+different genome. Detectors below are fixed in advance; results are reported against them, nulls included.
+
+sim7–9 and the Exp 11/12 nightly pipeline are untouched (`mvp/sim10.py` is a new numpy-only file).
+
+## World
+* Torus, G×G cells (default G=48). Agents sit on integer cells; many per cell. Cap Nmax agents.
+* **Field** `F[c, G, G]`, read/write by every agent, 5-point diffusion (per-channel D) + decay each step:
+  | ch | name | source | sink / effect |
+  |---|---|---|---|
+  | 0 | `nut` nutrient | external inflow on patchy capacity map | uptake (competitive, per-cell) |
+  | 1 | `org` organics/lysate | dead/lysed agents release biomass | uptake by agents with `eat_org` |
+  | 2 | `tox` toxin | secreted (`tox_sec`) | damage ∝ tox·(1−`tox_res`) |
+  | 3 | `sig` signal | secreted (`sig_sec`) | sensed: drives phenotype switch (`p`) |
+  | 4 | `agm` antigen mass | every agent sheds its tag; lysis dumps tag | sensed by memory |
+  | 5..12 | `agt[k]` antigen tag ×8 | tag-weighted shed mass (`agt/agm` = mean local antigen tag) | memory update |
+* **Particles**: there is no separate virus class. Any agent can be small, non-motile, low-machinery; free
+  agents diffuse/move cell-to-cell through the field grid and meet hosts only in a shared cell. Antigen
+  (shed tags) is a field quantity.
+
+## Heritable genome (35 numbers per agent, all in [0,1])
+| gene | meaning | cost / trade-off |
+|---|---|---|
+| `size` | compartment/membrane size | maintenance ∝ (0.05+size)^0.75; uptake capacity ∝ size; engulf needs size ratio ≥1.5; infect needs ratio ≤0.5 |
+| `auto` | own replication machinery | maintenance ∝ auto; free replication probability ∝ auto |
+| `upt` | nutrient uptake rate | cost ∝ upt |
+| `eat_org` | organics uptake rate | cost ∝ eat_org |
+| `tox_sec` | toxin secretion | energy cost; harms neighbours (and self unless resistant) |
+| `tox_res` | toxin resistance | maintenance cost |
+| `sig_sec` | signal secretion | energy cost |
+| `motil` | motility | move cost per move |
+| `chemo` | chemotaxis up the nutrient gradient (vs random step) | — |
+| `adh` | adhesion | cost; adhesive co-located agents (adh>0.5) move less and share energy |
+| `share` | energy-sharing rate inside an adhesive cell group | gives energy away (cheating possible) |
+| `engulf` | phagocytic drive (eat a smaller free agent in the cell) | cost ∝ engulf |
+| `infect` | binding/entry drive into a larger agent | cost ∝ infect |
+| `vir` | virulence: drain rate of host energy while inside | — |
+| `mut` | mutation rate: σ = 10^(−3+2·mut) | none (indirect) |
+| `defense` | non-self response: block entry / clear internal parasites / refuse engulfment-by... | maintenance cost |
+| `mem` | memory learning rate (adaptive immunity) | maintenance cost |
+| `p_thr`, `p_gain` | phenotype switch p = σ(gain·20·(sig_local−thr)); gain≈0 ⇒ no plasticity | — |
+| `tag[8]` | surface tag (what others see) | — |
+| `rec[8]` | receptor (what this agent binds to when infecting) | — |
+
+Non-heritable state: energy E, age, host (−1 = free), memory vector m[8] and strength ms (copied to
+offspring, CRISPR-like), expressed phenotype p.
+
+Recognition: affinity(a,b)=exp(−|a−b|²/w), w=0.5 (8-d tags). Self-match = affinity(tag_i, tag_j).
+* Infection of host h by free i (same cell, size_i ≤ 0.5·size_h): P = infect_i·aff(rec_i, tag_h)·(1−block_h),
+  block_h = defense_h·(1−aff(tag_i,tag_h)) + ms_h·aff(tag_i, m_h)   (clipped to [0,1]).
+* Inside: parasite takes vir·0.05·E_h per step; no field uptake. Replicates when E ≥ threshold with
+  probability max(auto_p, auto_h) (**host machinery hijack**). Host clears each internal parasite with
+  prob 0.1·block_h. Host death (E≤0) frees all internal parasites into the cell (burst) and lyses biomass to `org`.
+* Engulf of free j by i (size_i ≥ 1.5·size_j): P = engulf_i·(1−aff(tag_i,tag_j)) (self-like is tolerated);
+  i gains 0.6·E_j + biomass; j's internal parasites die.
+* Memory: on clearing a parasite, and from local antigen whose mean tag is non-self, m moves toward that tag at
+  rate mem, ms rises by mem·0.1 (decays 0.001/step).
+* Phenotype p ("soma-ness"): uptake ×(0.5+p), free replication ×(1−p). With sharing in an adhesive group, a
+  germ/soma split can pay; without it, it can't.
+
+## Pre-specified detectors (fixed before tuning)
+Genotype clusters: every W=250 steps, cluster living agents' 35-gene vectors (average-linkage, Euclidean cut
+d=0.9 on a ≤1500 subsample; rest assigned to nearest centroid). Abundant cluster = ≥2% of agents.
+
+* **D1 obligate parasitism.** Per window, per abundant cluster: rate_free = births while free / agent-steps
+  free; rate_in = births while inside a host / agent-steps inside. Fires for a cluster-window if
+  agent-steps inside ≥ 200, rate_in > 0, and rate_free ≤ 0.1·rate_in (incl. 0) while that cluster also has
+  ≥ 200 free agent-steps (it does exist free, it just doesn't replicate there). Seed-level: fires if it
+  holds in ≥ 3 windows in the second half of the run.
+* **D2 host–parasite arms race.** Hosts_t = tags of agents infected during window t; Paras_t = receptors of
+  agents that infected during t. A[t_p,t_h] = mean aff(rec, tag) over sampled pairs. Time-shift curve
+  A(d)=mean over t of A[t, t+d]. Fires if (a) the infected-host tag centroid moves ≥ 0.3 (Euclid, 8-d) between
+  the first and last infection windows and (b) A(0) − A(+8 windows) ≥ 0.05 (parasites are better on current
+  hosts than on future ones = hosts escape). Needs infection in ≥ 12 windows.
+* **D3 aggregation with division of labour.** Aggregate = cell with ≥ 4 agents having adh > 0.5.
+  (a) fraction of agents in aggregates ≥ 0.10 averaged over the second half; (b) within-aggregate SD of p
+  ≥ 0.2 on average (differentiated states), and (c) within aggregates, births concentrate in low-p members:
+  share of births by p<0.5 members ≥ 0.7 while p≥0.5 members are ≥ 25% of members. Fires if (a)&(b)&(c).
+* **D4 trophic depth.** Per window, energy flows: nutrient/organics → cluster (level 1 inputs), engulf and
+  parasite drain flows cluster→cluster. Trophic level TL_k = 1 + Σ_j f_jk·TL_j / Σ f_·k (field income has TL 0).
+  Report max TL among abundant clusters; fires if ≥ 2.5 (a consumer of consumers) in ≥ 3 second-half windows.
+* **D5 diversity / persistence.** Effective number of clusters exp(H) per window; persistence = number of
+  centroid-tracks (match d<0.9 between consecutive windows) lasting ≥ 1000 steps. Fires if median second-half
+  exp(H) ≥ 3 and ≥ 3 tracks persist ≥ 1000 steps.
+* **D6 immune memory.** Mean `mem` gene (second half) in `full` vs the `mem_inert` control (memory has no
+  effect, same cost) — fires if full − inert > 0.05 with the paired-by-seed 95% CI excluding 0 (n≥3).
+
+Controls (arms): `full`; `no_hijack` (inside replication uses only parasite's own `auto`: obligate parasitism
+should become impossible — negative control for D1); `mem_inert` (for D6).
+Sweep (robustness, not cherry-picking): nutrient inflow × {0.5, 1, 2} on `full`, seeds 0–2, plus the two
+controls at inflow 1. All claims need ≥ 3 seeds; per-seed results are reported.
+
+Not claimed in advance: anything is "immune-system-like" only to the extent the detectors fire. Phenomena
+that are emergent here vs built in: the *mechanisms* (binding by tag–receptor affinity, host machinery use,
+engulfment, adhesion, memory update, phenotype switch) are built in as possibilities; which genomes use
+them, and whether parasites/aggregates/arms races appear, is not.
