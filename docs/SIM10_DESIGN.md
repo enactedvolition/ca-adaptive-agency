@@ -128,3 +128,60 @@ Not claimed in advance: anything is "immune-system-like" only to the extent the 
 that are emergent here vs built in: the *mechanisms* (binding by tag–receptor affinity, host machinery use,
 engulfment, adhesion, memory update, phenotype switch) are built in as possibilities; which genomes use
 them, and whether parasites/aggregates/arms races appear, is not.
+
+## Addendum B (EV t101u "Ensure thermodynamics is strict", 13:41 PST — built into the core before any tuning/sweep)
+
+The whole step function was rewritten around two exact ledgers and a second-law check. This supersedes the
+non-conservative parts of the text above (e.g. "E += income", clipping fields at 0, Gray–Scott as irreversible).
+
+**Conserved quantities.** Matter (one element, "units") and energy. kT = 1 (isothermal bath).
+* Matter lives in field species A, V, W, D (detritus), X (toxin), S (signal), Ag (antigen) and agent bodies M_i.
+  Antigen *tags* (agt[8]) are information carried in proportion to Ag matter, not extra matter.
+* Energy = Σ_s e_s·n_s (field) + Σ_i (E_i + e_B·M_i) (agents: ATP-like store E_i plus biomass). Heat goes to the bath.
+* Boundary (the only exchange with outside): chemostat. Inflow of A at f·A_res per cell per step; dilution
+  outflow f·c of **every** field species (agents are attached, not washed out). f = 0.035·`inflow`.
+* Ledger asserted every step, run aborts on violation (`ThermoError`):
+  M(t+1) = M(t) + in_M − out_M,  E(t+1) = E(t) + in_E − out_E − Q_bath,  |residual|/total < 1e-9.
+  Q_bath is accumulated **explicitly** from each process's heat term (not computed by difference), so the
+  check is meaningful. Founders (N0 agents, M0=0.3, E0=0.8 each) are part of the initial state.
+
+**Free-energy table** (standard energies, kT units): e_A=10, e_V=6, e_W=0 (waste, ground state), e_D=5,
+e_X=6, e_S=6, e_Ag=5, biomass e_B=12. Actual ΔG uses ideal-dilute activities (ΔG = ΔG° + ln Q).
+
+**Field reactions (all reversible, mass action, k+/k− = exp(−ΔG°)):**
+* R1 A + 2V ⇌ 3V, k+=1, k−=e^−4 (Gray–Scott autocatalysis with its reverse step). Catalysed by agent gene
+  `cat_gs` (k±·(1+2Σcat_gs) in the cell: rate up, equilibrium unchanged).
+* V, D, X, S, Ag ⇌ W with k+ = 0.06, 0.01, 0.02, 0.05, 0.02 and k− = k+·exp(−(e_s−e_W)). X⇌W catalysed by `detox`.
+* With dilution f=0.035 and k_V=0.06 this is the (f,k)=(0.035,0.060) Gray–Scott regime, now reversible; patterns
+  are maintained only by the boundary flux. Net fluxes are stock-limited (scaling keeps the sign), so no
+  negative concentrations and dissipation stays ≥ 0. Diffusion is conservative explicit 5-point (4D < 1).
+* Entropy production of each reaction: σ = (J+−J−)·ln(J+/J−) ≥ 0.
+
+**Agent processes, each with heat and dissipation (= T·entropy production, asserted ≥ 0 per process):**
+* Catabolism A→W (passive uptake, competitive per cell): only when ΔG_actual = e_W−e_A+ln(W/A) < 0; the agent
+  captures η=0.5 of −ΔG_actual into E, the rest is dissipated. Same for detritus D→W (`eat_org`).
+* Assimilation A→biomass (grows M up to 2·M_target): paid from E at (e_B − e_A − ln A) + 0.2 overhead (uphill,
+  driven by coupling to the E store; dissipation = overhead).
+* Active MM transporters (`rt_vmax`, `rt_km`, `rt_spec` split between S and V): pay transport work
+  max(0, ln(c_int/c_out)) + 0.1 overhead per unit (c_int = 1), then catabolise inside (capture η·(−ΔG°+ln(W/c_int)));
+  uptake that would not pay is returned unchanged (no uphill transport without coupling).
+* Release (`sig_sec`, `tox_sec`) and shedding draw **body matter** (B→S, B→X, B→Ag, downhill; heat e_B−e_s).
+* Toxin hit: X + E → W (+ heat), agent loses E.
+* Maintenance (size, body mass, every costly gene), movement (∝ 0.2+M), division (c_div), engulf attempt,
+  energy sharing (10% loss), parasite drain (20% of transferred E lost): E → heat. Nobody can pay with E it lacks;
+  an agent that cannot pay maintenance and is at E≈0 dies.
+* Reproduction splits M and E exactly in half (offspring gets real matter/energy; mutation is free and creates
+  nothing). Parasite offspring are made from matter and energy drained from the host — "virions carry real mass
+  built by the host". Engulf: predator gets 0.6 of prey M and E, rest → detritus + heat.
+* Death: body → detritus (90%) + antigen (10%, carrying tags) in the cell; leftover E → heat. Never deleted.
+* Approximation (stated): release from body treats the body as a pure phase (activity 1), and the release heat
+  e_B−e_s is counted as fully dissipated; for very high local S this slightly overstates dissipation, never
+  understates it below 0 for the tested ranges (asserted every step).
+
+**Required sanity tests:** (i) closed system (`inflow=0`): no boundary flux; must relax toward equilibrium
+(A, V → ~0, matter ends in W/D) and all agents die; (ii) agent-free run (`N0=0`): reversible Gray–Scott must
+still self-organise under the boundary flux. Both run as part of the sweep (`closed_s*`, `agentfree_s*`).
+
+**Sweep knob change (documented honestly):** the agent-free check (13:40 PST) showed Gray–Scott dies if the
+feed is spatially patchy, so feed is uniform and the sweep knob `inflow` now scales the chemostat rate f
+(0.5, 1, 2), not a patch map. inflow=2 moves Gray–Scott to f=0.07 (a different, likely homogeneous, regime).
