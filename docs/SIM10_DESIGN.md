@@ -63,6 +63,35 @@ Recognition: affinity(a,b)=exp(−|a−b|²/w), w=0.5 (8-d tags). Self-match = a
 * Phenotype p ("soma-ness"): uptake ×(0.5+p), free replication ×(1−p). With sharing in an adhesive group, a
   germ/soma split can pay; without it, it can't.
 
+
+## Addendum A (EV t99u, 2026-11-11 13:39 PST, still before any tuning run): reaction–diffusion + release–reuptake
+
+**Reaction–diffusion.** Channel 0 `nut` (U) and a new channel `V` (autocatalytic metabolite) follow
+Gray–Scott kinetics in every cell, independent of agents:
+  dU = D_U∇²U − U V² + f_gs·(K(x) − U)·inflow,   dV = D_V∇²V + U V² − (f_gs + k_gs) V
+with documented constants D_U=0.16, D_V=0.08 (per step, 5-point), f_gs=0.035, k_gs=0.060 (spot/labyrinth
+regime). So the field self-organises with no agents (checked by an agent-free run, reported as a sanity
+check, not a result). V is food (uptake via transporters below). Agent-catalysed reactions (heritable
+catalytic rates, acting on the agent's own cell):
+  * `detox`: degrades toxin, d tox = −k_cat·detox·tox (k_cat=0.2), cost ∝ detox — neutralises others' toxin.
+  * `digest`: exoenzyme converting organics to nutrient, org → U at rate k_cat·digest·org, cost ∝ digest;
+    the product is a public good in the cell (cheats can use it).
+
+**Release–reuptake.** Separate from passive nutrient uptake, each agent has heritable transporters:
+`rt_vmax`, `rt_km`, `rt_spec`. Active Michaelis–Menten uptake per channel:
+  J_sig = rt_vmax·rt_spec·sig/(Km+sig),   J_V = rt_vmax·(1−rt_spec)·V/(Km+V),   Km = 0.01+0.5·rt_km,
+competitively split per cell when demand exceeds the cell stock. Reuptaken signal recovers 0.8 of its release
+cost (recycling); V uptake is energy. Release is `sig_sec` (heritable). Transporter cost ∝ rt_vmax. Anyone with
+the transporter can take up anyone's signal, so cheats can recycle others' release or shorten its lifetime.
+Genome is now 40 numbers (24 scalars + tag[8] + rec[8]); field is 14 channels (U, V, org, tox, sig, agm, agt×8).
+
+**D7 reuptake shapes signal lifetime/range (counterfactual).** At the final state of each run, clone it and
+run 200 steps twice with identical RNG: intact vs reuptake knockout (rt_vmax→0 for the signal term only).
+Measure (i) mean sig, (ii) effective signal half-life = ln2 / (removal rate), removal = decay + transporter
+flux, from the intact run's flux accounting vs KO, and (iii) spatial correlation length of sig (distance where
+the radial autocorrelation falls below 1/e). Fires if mean sig or correlation length differs by ≥ 20% KO vs
+intact in the same direction in ≥ 3 seeds.
+
 ## Pre-specified detectors (fixed before tuning)
 Genotype clusters: every W=250 steps, cluster living agents' 35-gene vectors (average-linkage, Euclidean cut
 d=0.9 on a ≤1500 subsample; rest assigned to nearest centroid). Abundant cluster = ≥2% of agents.
