@@ -63,3 +63,108 @@ Fix the obvious economics before more seeds, then rerun the same detectors uncha
 3. Protect RD from total drawdown (larger grid or slower uptake k_upt) so the V patterns survive to be exploited.
 4. 20k steps × 3 seeds × {full, no_hijack, mem_inert}, ≤3 procs (~2 min/run), checkpointed; a size/auto sweep
    (3×3) to test robustness of whatever fires.
+
+---
+
+# sim10 v2 — economics fix + analytics (2026-11-11, runs 14:42–14:56 PST)
+
+Post-design changes are in `SIM10_DESIGN.md` Addendum C (5× machinery cost, mass-tied replication threshold, founder
+size range with mass tied to size, payable reuptake via c_int 1→0.01 and overhead 0.1→0.02, signal cap 0.004→0.01,
+G 40→64, slower uptake k_upt 0.06→0.02 and transporter k_rt 0.02, more initial V seeds, trace V in the feed).
+Detectors D1–D7 unchanged (D1–D5 code is exec'd verbatim from `analyze_sim10.py`). 42 runs: base / no_hijack /
+mem_inert × 3 seeds × 20k steps; agent-free (20k) and closed (8k) × 3; robustness sweep c_auto {0.004, 0.02, 0.06}
+× founder size {small (0–.35), full (0–1), large (.65–1)} × 3 seeds × 8k steps. 3 procs, 9–151 s/run, max RSS 1.0 GB.
+Full tables: `figures/sim10_v2/tables_v2.md`; per-run JSON `figures/sim10_v2/detectors_v2.json`.
+CIs are 95% t-intervals across seeds (n=3, df=2 — wide).
+
+## Thermodynamics (all 42 runs, every step asserted)
+Max |matter residual| 7.7e-11, max |energy residual| 1.4e-10 (tolerance 1e-9). The residual grows ~linearly with
+run length from float accumulation (≈7e-11 at 20k steps; `timeseries_v2.png`), so runs beyond ~200k steps would
+need compensated summation (Kahan) to stay under 1e-9 — not relaxed here. Min per-process dissipation 0; per-step
+entropy production > 0 everywhere (min 4.8e-4 in the dying closed systems). Closed systems: all agents dead by
+step 500–750 in 3/3; A → 0.003–0.006, V → 0.0034 (= its equilibrium with W, e^−6·W), no spots. Agent-free:
+13–18 self-sustaining V spots at 20k in 3/3 seeds (mean V 0.054–0.066). Pass.
+
+## Detector results (unchanged definitions)
+| condition (20k) | D1 | D2 | D3 | D4 | D5 | D7 |
+|---|---|---|---|---|---|---|
+| base | 2/3 | 0/3 | 0/3 | 3/3 | 3/3 | no |
+| no_hijack (negative control for D1) | **3/3** | 0/3 | 0/3 | 3/3 | 3/3 | no |
+| mem_inert | 2/3 | 0/3 | 0/3 | 3/3 | 3/3 | no |
+D6: base − mem_inert `mem` gene, paired +0.084 [−0.229, +0.397] → no.
+
+Key statistics, base (mean [95% CI], n=3): D2 host-tag drift 0.52 [0.26, 0.78] (criterion ≥0.3 met), A(0)−A(+8)
+0.0083 [0.0033, 0.0133] (criterion ≥0.05 not met — 6× too small); D3 clump fraction 0.12 [−0.11, 0.35],
+within-clump SD of p 0.030 [0.010, 0.049] (criterion ≥0.2); D4 max TL 3.04 [2.59, 3.49], without self-loops
+2.85 [2.61, 3.09], self-loop share 0.11 [0.04, 0.17]; D5 exp(H) 9.9 [−3.9, 23.7]; signal half-life 7.9 [7.1, 8.6] steps.
+
+### What D1 firing means (diagnosed, not claimed)
+D1 fires as pre-specified in 2/3 base seeds, **but it also fires in 3/3 no-hijack seeds**, the negative control in
+which a parasite can only replicate with its own machinery. So D1 isn't detecting machinery hijacking. The
+clusters that meet it spend 1–4% of their time inside a host, and inside it they replicate ~10× faster because
+they're feeding on host matter and energy. But **73–92% of their births still happen while free** (one seed: 25%).
+They're facultative intracellular parasites, nutritionally favoured inside hosts, not obligate ones. Only base s0
+looks virus-like in its genes: hit-cluster centroid auto 0.10 vs population 0.47, size 0.56 vs 0.91, infect 0.88
+vs 0.44 — one seed, not a finding. Pooled over all agents, inside birth rate is ~2× free in every condition,
+controls included. Under the substantive definition ("replication ≈ 0 without a host") obligate parasitism did
+**not** emerge.
+
+### D2 cross-time test
+Cross-time curve A(d) = parasite receptor at t vs host tag at t+d, d in 250-step windows (`tables_v2.md`). Base s0
+falls monotonically from past to future, 0.199 (d=−16) → 0.162 (d=+16): parasites are best on *past* hosts and
+hosts move away, which is directional host escape. Seeds 1–2 peak at d=0 with a ≤0.01 drop. Controls look the
+same, and so does no_hijack. The effect size is ~0.01 against a pre-set threshold of 0.05. No measured arms race;
+at most weak, directional host-escape drift. `tag_receptor_drift_v2.png` shows host-tag and receptor PC1 over
+time plus the A[t, t'] matrix.
+
+### D3
+Clumps form, with up to 20–36% of agents in clumps for thousands of steps in some seeds, but phenotype variance
+inside them is ~0.03–0.05, an order of magnitude under the threshold. Births are 83% by low-p members, but that's
+because almost all members are low-p. No differentiated states and no division of labour.
+
+### D7 reuptake (signal half-life / range vs knockout)
+Reuptake now runs and pays per molecule. Net capture is 0.18–0.70 kT per unit taken up after the
+ln(c_int/c_out)+overhead work. Knockout lengthens the signal half-life in 9/9 main runs (intact 6.9–9.2 → KO
+9.0–9.6 steps; KO/intact 1.23 [0.95, 1.52] base) and raises mean signal 1.04–1.44×. But the ≥20% same-direction
+criterion is met in ≥3 seeds only in sweep cell c_auto 0.004 × full (sig KO/intact 1.36, 1.32, 1.21), not in base
+or the controls. Spatial correlation length is unchanged within grid resolution (2–4 cells). **Reuptake doesn't pay
+for its transporters:** estimated transporter maintenance over the second half (0.0015·rt_vmax·N·steps) is 15k–39k
+energy units vs 350–7.4k of net capture, 10–60× more. Consistent with that, the `rt_vmax` gene sits near 0.5–0.6,
+which is drift-like. (Caveat: Vmax is shared with V uptake, and V is ~0 after the spots die, so half the
+transporter capacity is idle.)
+
+### Robustness sweep (`robustness_v2.png`)
+* Machinery cost does select: mean `auto` drops 0.53–0.59 (c_auto 0.004) → 0.32–0.42 (0.02) → 0.21–0.26 (0.06).
+* D1 hits **fall** as machinery gets costlier (c_auto 0.004: 0–2/3 seeds; 0.02 and 0.06: 0/3 everywhere). Hosts
+  shed machinery too, so there's less to hijack, and inside replication uses max(own, host) machinery.
+* Founder size doesn't matter. Small founders (size 0–0.35) evolve back to large: mean size 0.62–0.83 by 8k steps,
+  0.93 in full/large. Being big pays (uptake ∝ size, engulfing needs ≥1.5× mass, and infection needs the *host* to be
+  ≥2× bigger, so selection on hosts and engulfers drives size up). "Founders too big" was not the blocker.
+* D2 fires in 1/27 sweep runs (c_auto 0.004 × small, one seed). D3 0/27. D4 fires in 26/27, D5 in 25/27.
+* RD spots are wiped out in 26/27 sweep runs and in all 9 main runs (spot count 0 after t≈1000).
+
+## Organisational levels: emerged vs not (v2)
+* **Emerged robustly:** free-living autotrophic cells; engulfers forming a trophic chain (TL ≈ 3 without self-loops,
+  in all conditions); persistent genotype diversity (still partly founder standing variation); transient adhesive
+  clumps; facultative intracellular parasites that use the host as food.
+* **Did not emerge:** obligate (virus-like) parasites; a measured arms race (Red Queen); division of labour in
+  clumps; adaptive immune memory (D6 null); agents exploiting or modulating RD patterns (spots die in every agent
+  run); reuptake shaping signal range.
+* **Why, in numbers:** (1) machinery hijack can't pay when hosts are themselves shedding machinery, and inside time
+  is only 1–4%. (2) Size selection is uniformly upward, so a small-parasite / large-host split never stabilises.
+  (3) Phenotype switching has no signal gradient to work on inside a clump (corr length 2–4 cells, half-life ~8
+  steps), so there's no germ/soma split. (4) The population boom at t≈1000 draws A below the spot-sustaining level,
+  and V never re-nucleates even with trace V in the feed.
+
+## Recommended next step
+1. **Decouple host and parasite machinery economics.** Make hijack use host machinery *capacity* while the host
+   pays for it, and make machinery a prerequisite of free replication rather than a rate multiplier (threshold).
+   Then low-auto genomes only replicate inside. This is still emergent: nobody is assigned the role.
+2. **Break uniform size selection:** a surface/volume uptake law (uptake ∝ size^(2/3), maintenance ∝ size) so small
+   bodies have a niche.
+3. **Protect the RD layer:** a spatially separate feed for A vs a slow-diffusing V substrate, or an agent
+   carrying-capacity term set by thermodynamics (e.g. finite A feed per cell). Verify spots survive with agents
+   before running evolution.
+4. Split the transporter Vmax per channel (separate genes) so signal reuptake isn't taxed by an idle V transporter.
+5. Add Kahan-compensated ledgers before going past 100k steps.
+6. Then 20k × 5 seeds for base / no_hijack / mem_inert, same detectors.
