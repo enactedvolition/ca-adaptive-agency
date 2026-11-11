@@ -1,9 +1,10 @@
 """Run one sim10 config, compute per-window detector stats (docs/SIM10_DESIGN.md), save to OUT (outside the repo)."""
 import sys, os, json, copy, time, resource
-import numpy as np
+import numpy as np, pickle
+from scipy import ndimage
 from scipy.cluster.hierarchy import linkage, fcluster
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from mvp.sim10 import World, Cfg, GENES, gi, NS, NT, TAG, REC, aff, S as SIGCH, A as ACH, V as VCH
+from mvp.sim10 import V2, World, Cfg, GENES, gi, NS, NT, TAG, REC, aff, S as SIGCH, A as ACH, V as VCH
 
 def cluster(gm, rng, cut=0.9):
     n = gm.shape[0]
@@ -67,26 +68,45 @@ def window_stats(w, lab_all, cents, rng):
                 mem=float(w.g[a, gi["mem"]].mean()), gene_mean=w.g[a, :NS].mean(0).tolist(),
                 sig_rel=L["sig_rel"], sig_rt=L["sig_rt"], sig_dec=L["sig_dec"],
                 sig_mean=float(w.F[SIGCH].mean()), V_mean=float(w.F[VCH].mean()), A_mean=float(w.F[ACH].mean()),
-                sig_corr=corr_len(w.F[SIGCH])), cents, inf_t
+                sig_corr=corr_len(w.F[SIGCH]), sig_net=L["sig_net"], sig_work=L["sig_work"],
+                sig_halflife=sig_hl(w, L), V_var=float(w.F[VCH].var()), V_spots=int(ndimage.label(w.F[VCH] > 0.1)[1]),
+                gene_sd=w.g[a, :NS].std(0).tolist() if a.size else [], sigma_win=float(np.sum([r_[3] for r_ in w.resid[-w.c.W:]])),
+                resid_win=float(np.max([max(abs(r_[1]), abs(r_[2])) for r_ in w.resid[-w.c.W:]]))), cents, inf_t
+
+def sig_hl(w, L):
+    stock = w.F[SIGCH].sum()
+    if stock <= 0: return float("nan")
+    rate = (L["sig_dec"] + L["sig_rt"]) / w.c.W / stock + w.c.f * w.c.inflow
+    return float(np.log(2) / rate) if rate > 0 else float("inf")
 
 def ko_test(w, T=200):
     out = {}
     for ko in (0, 1):
         w2 = copy.deepcopy(w); w2.c = type(w.c)(**{**w.c.__dict__, "rt_sig_ko": ko}); w2.rng = np.random.default_rng(777)
-        sm, cl = [], []
+        sm, cl = [], []; w2.new_window(); st = []
         for t in range(T):
-            w2.step()
+            w2.step(); st.append(w2.F[SIGCH].sum())
             if t >= T - 50: sm.append(w2.F[SIGCH].mean()); cl.append(corr_len(w2.F[SIGCH]))
-        out[ko] = (float(np.mean(sm)), float(np.mean(cl)))
-    return dict(sig_intact=out[0][0], sig_ko=out[1][0], corr_intact=out[0][1], corr_ko=out[1][1])
+        L = w2.log; rate = (L["sig_dec"] + L["sig_rt"]) / T / max(np.mean(st), 1e-300) + w2.c.f * w2.c.inflow
+        out[ko] = (float(np.mean(sm)), float(np.mean(cl)), float(np.log(2) / rate), L["sig_net"], L["sig_work"], L["sig_rt"])
+    return dict(sig_intact=out[0][0], sig_ko=out[1][0], corr_intact=out[0][1], corr_ko=out[1][1],
+                hl_intact=out[0][2], hl_ko=out[1][2], rt_net_energy_intact=out[0][3], rt_work_intact=out[0][4], rt_flux_intact=out[0][5])
 
 def main(name, outdir, **kw):
     os.makedirs(outdir, exist_ok=True)
-    t0 = time.time(); cfg = Cfg(**kw); w = World(cfg); rng = np.random.default_rng(cfg.seed + 99)
-    a = np.flatnonzero(w.alive); lab, cents = cluster(w.g[a], rng); w.lab[:] = -1; w.lab[a] = lab
-    wins, centl, inft, snaps = [], [], [], {}
-    for t in range(cfg.steps):
+    t0 = time.time()
+    if kw.pop("preset", 0) == 2: kw = {**V2, **kw}
+    cfg = Cfg(**kw); ck = f"{outdir}/{name}.ckpt"
+    if os.path.exists(ck):
+        w, rng, cents, wins, centl, inft, snaps = pickle.load(open(ck, "rb")); print(name, "resumed at", w.t, flush=True)
+    else:
+        w = World(cfg); rng = np.random.default_rng(cfg.seed + 99)
+        a = np.flatnonzero(w.alive); lab, cents = cluster(w.g[a], rng); w.lab[:] = -1; w.lab[a] = lab
+        wins, centl, inft, snaps = [], [], [], {}
+    while w.t < cfg.steps:
         w.step()
+        if w.t % 5000 == 0 and w.t < cfg.steps:
+            pickle.dump((w, rng, cents, wins, centl, inft, snaps), open(ck + ".tmp", "wb")); os.replace(ck + ".tmp", ck)
         if w.t % cfg.W == 0:
             a = np.flatnonzero(w.alive)
             lab_new, cents_new = cluster(w.g[a], rng) if a.size else (np.zeros(0, int), np.zeros((1, w.g.shape[1])))
@@ -105,6 +125,7 @@ def main(name, outdir, **kw):
     json.dump(res, open(f"{outdir}/{name}.json", "w"))
     np.savez_compressed(f"{outdir}/{name}.npz", cents=np.array(centl, dtype=object), inf=np.array(inft, dtype=object),
                         resid=R, snaps=np.array([snaps], dtype=object))
+    if os.path.exists(ck): os.remove(ck)
     print(name, "done", round(time.time() - t0, 1), "s", res["thermo"], flush=True)
 
 if __name__ == "__main__":

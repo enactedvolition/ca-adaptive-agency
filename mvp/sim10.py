@@ -36,9 +36,16 @@ class Cfg:
     steps: int = 4000
     W: int = 250
     inflow: float = 1.0      # multiplies chemostat dilution rate f (0 = closed system)
-    f: float = 0.035; A_res: float = 1.0; k1: float = 1.0
+    f: float = 0.035; A_res: float = 1.0; V_res: float = 0.0; k1: float = 1.0
     eta: float = 0.5         # fraction of catabolic free energy captured into the ATP-like store E
     k_upt: float = 0.06; k_cat: float = 2.0; ovh_tr: float = 0.1; c_int: float = 1.0
+    k_rt: float = 0.06       # transporter Vmax scale (v1: tied to k_upt)
+    c_auto: float = 0.004    # maintenance cost per unit `auto` (own replication machinery)
+    sig_cap: float = 0.004   # max signal release per unit sig_sec per step
+    size_lo: float = 0.0; size_hi: float = 1.0   # founder `size` gene range
+    E_rep_M: float = 0.0     # replication energy threshold per unit body mass (v1: 0)
+    v_seed_mul: float = 0.0  # >0: number of initial V seed squares scales with area x this
+    M0_by_size: int = 0      # 1: founder body mass = 2*M_target(size) (v1: M0 for all)
     base: float = 0.004; c_move: float = 0.002; c_div: float = 0.05
     tox_k: float = 0.05; tox_hit: float = 0.5
     M0: float = 0.3; E0: float = 0.8
@@ -64,7 +71,7 @@ class World:
         self.c = c = cfg; G = c.G
         self.rng = r = np.random.default_rng(c.seed)
         F = np.zeros((NSP, G, G)); F[A] = c.A_res
-        for _ in range(12):
+        for _ in range(max(12, int(round(12 * (G / 40) ** 2 * c.v_seed_mul)))):
             x, y = r.integers(0, G, 2); ix = (np.arange(x, x + 4) % G)[:, None]; iy = np.arange(y, y + 4) % G
             F[A, ix, iy] = 0.5; F[V, ix, iy] = 0.25
         self.F = F; self.AGT = np.zeros((NT, G, G))
@@ -76,6 +83,8 @@ class World:
         k = c.N0
         # founders are assembled from the initial A stock (no matter or energy created)
         self.alive[:k] = True; self.g[:k] = r.random((k, NG)); self.E[:k] = c.E0; self.M[:k] = c.M0
+        self.g[:k, gi['size']] = c.size_lo + (c.size_hi - c.size_lo) * r.random(k)
+        if c.M0_by_size: self.M[:k] = 2 * (0.05 + 0.5 * self.g[:k, gi['size']])
         self.x[:k] = r.integers(0, G, k); self.y[:k] = r.integers(0, G, k)
         self.uid[:k] = np.arange(k); self.next_uid = k
         self.t = 0
@@ -95,7 +104,7 @@ class World:
         n = self.c.Nmax
         self.log = dict(birth_free=[], birth_in=[], inf=[], eng=[], drain=[], free_steps=np.zeros(n),
                         in_steps=np.zeros(n), field_in=np.zeros(n), sig_rel=0.0, sig_rt=0.0, sig_dec=0.0,
-                        inf_tags=[], birth_p=[])
+                        inf_tags=[], birth_p=[], sig_net=0.0, sig_work=0.0)
 
     # ---------------------------------------------------------------- step
     def step(self):
@@ -117,10 +126,10 @@ class World:
         # ---------- 1. boundary: chemostat ----------
         fr = c.f * c.inflow
         if fr > 0:
-            inA = fr * c.A_res * np.ones((G, G)); out = fr * F
-            self.cum["inM"] += inA.sum(); self.cum["inE"] += EN[A] * inA.sum()
+            inA = fr * c.A_res * np.ones((G, G)); inV = fr * c.V_res * np.ones((G, G)); out = fr * F
+            self.cum["inM"] += inA.sum() + inV.sum(); self.cum["inE"] += EN[A] * inA.sum() + EN[V] * inV.sum()
             self.cum["outM"] += out.sum(); self.cum["outE"] += (EN[:, None, None] * out).sum()
-            F[A] += inA; F -= out
+            F[A] += inA; F[V] += inV; F -= out
         # ---------- 2. diffusion (conservative, positivity-preserving since 4D<1) ----------
         for s in range(NSP):
             F[s] = F[s] + DIFF[s] * lap(F[s])
@@ -169,7 +178,7 @@ class World:
         gotA = take(A, np.where(ok, gf[:, gi["upt"]] * (0.2 + size) * c.k_upt * (0.5 + pf), 0), cf)
         capA = c.eta * (-dG_A) * gotA * ok
         # assimilation: part of A becomes body if M < 2*Mt (pays e_B - e_A + ln(1/A) + overhead from E)
-        Mt = 0.2 + size
+        Mt = (0.05 + 0.5 * size) if self.c.M0_by_size else (0.2 + size)   # v2 uses the reproduction target
         # (A that went to growth: not catabolised)
         grow_frac = np.where(self.M[free] < 2 * Mt, 0.5, 0.0)
         cost_g = np.maximum(0, (E_B - EN[A]) - np.log(np.maximum(Ac, 1e-12))) + 0.2
@@ -191,7 +200,7 @@ class World:
         diss(((1 - c.eta) * (-dG_D) * gotD)[okd]); F_Wadd += np.bincount(cf, gotD, G * G)
         Q += float(((EN[D] - EN[W]) * gotD - capD).sum()); dE += capD
         # ---------- 7. MM transporters for S and V (active: pays ln(c_int/c_out) + overhead) ----------
-        km = 0.01 + 0.5 * gf[:, gi["rt_km"]]; vm = gf[:, gi["rt_vmax"]] * c.k_upt; sp = gf[:, gi["rt_spec"]]
+        km = 0.01 + 0.5 * gf[:, gi["rt_km"]]; vm = gf[:, gi["rt_vmax"]] * c.k_rt; sp = gf[:, gi["rt_spec"]]
         for s, frac_s, ko in ((S, sp, c.rt_sig_ko), (V, 1 - sp, 0)):
             cc = np.maximum(F[s].ravel()[cf], 1e-12)
             J = vm * frac_s * cc / (km + cc) * (0 if ko else 1)
@@ -203,6 +212,7 @@ class World:
             if (~okc).any():   # return unprofitable uptake untouched
                 F[s] += np.bincount(cf, got * ~okc, G * G).reshape(G, G)
             cap = (c.eta * (-dG_cat) - wtr) * got_ok
+            if s == S: self.log["sig_net"] += float(cap.sum()); self.log["sig_work"] += float((wtr * got_ok).sum())
             # dissipation: total -dG (out -> W) minus captured
             dG_tot = (EN[W] - EN[s]) + np.log(Wc / cc)
             diss(((-dG_tot) * got_ok - cap)[okc])
@@ -211,7 +221,7 @@ class World:
         F[W] += F_Wadd.reshape(G, G)
         self.E[free] += dE; self.log["field_in"][free] += dE
         # ---------- 8. secretion from body: B -> S, B -> X (downhill), shed B -> Ag ----------
-        relS = np.minimum(gf[:, gi["sig_sec"]] * 0.004, 0.1 * self.M[free])
+        relS = np.minimum(gf[:, gi["sig_sec"]] * c.sig_cap, 0.1 * self.M[free])
         relX = np.minimum(gf[:, gi["tox_sec"]] * 0.004, 0.1 * self.M[free])
         relA = np.minimum(c.shed * 0.1 * np.ones(free.size), 0.05 * self.M[free])
         self.M[free] -= relS + relX + relA
@@ -234,7 +244,7 @@ class World:
         # ---------- 10. maintenance & drive costs (E -> heat) ----------
         cost = c.base * (0.05 + g[idx, gi["size"]] + self.M[idx]) ** 0.75
         for name, cc in COST.items():
-            cost = cost + cc * g[idx, gi[name]]
+            cost = cost + (c.c_auto if name == 'auto' else cc) * g[idx, gi[name]]
         starving = cost > self.E[idx]
         paid = np.minimum(cost, self.E[idx]); self.E[idx] -= paid; Q += float(paid.sum()); diss(paid)
         # ---------- 11. movement ----------
@@ -327,10 +337,9 @@ class World:
         if c.hijack:
             hh = np.where(isin, self.host[idx], 0)
             effr = np.where(isin, np.maximum(effr, g[hh, gi["auto"]]), effr)
-        Mt_i = 0.2 + g[idx, gi["size"]] * np.where(isin, 0.3, 1.0) * 0 + g[idx, gi["size"]] * 0  # placeholder kept simple
         Mt_i = 0.05 + 0.5 * g[idx, gi["size"]]
         prep = 0.1 * effr * np.where(isin, 1.0, 1 - self.p[idx])
-        rep = idx[(self.M[idx] >= 2 * Mt_i) & (self.E[idx] > c.c_div + 0.1) & (r.random(idx.size) < prep) & ~dead[idx]]
+        rep = idx[(self.M[idx] >= 2 * Mt_i) & (self.E[idx] > c.c_div + 0.1 + c.E_rep_M * self.M[idx]) & (r.random(idx.size) < prep) & ~dead[idx]]
         # ---------- 16. death: body -> detritus (+ antigen with tags), stored E -> heat ----------
         die = idx[starving & (self.E[idx] <= 1e-12) | (self.age[idx] > c.max_age * (0.5 + r.random(idx.size)))]
         dead[die] = True
@@ -391,3 +400,7 @@ class World:
         return dict(t=self.t, g=self.g[idx].copy(), E=self.E[idx].copy(), M=self.M[idx].copy(), x=self.x[idx].copy(),
                     y=self.y[idx].copy(), host=(self.host[idx] >= 0), p=self.p[idx].copy(), ms=self.ms[idx].copy(),
                     uid=self.uid[idx].copy())
+
+# v2 economics preset (post-design change, see SIM10_DESIGN.md Addendum C)
+V2 = dict(G=64, Nmax=12000, N0=3000, c_auto=0.02, c_int=0.01, ovh_tr=0.02, sig_cap=0.01,
+          E_rep_M=0.5, M0_by_size=1, v_seed_mul=2.0, k_upt=0.02, k_rt=0.02, V_res=0.002)

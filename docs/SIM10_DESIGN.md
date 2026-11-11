@@ -185,3 +185,40 @@ still self-organise under the boundary flux. Both run as part of the sweep (`clo
 **Sweep knob change (documented honestly):** the agent-free check (13:40 PST) showed Gray–Scott dies if the
 feed is spatially patchy, so feed is uniform and the sweep knob `inflow` now scales the chemostat rate f
 (0.5, 1, 2), not a patch map. inflow=2 moves Gray–Scott to f=0.07 (a different, likely homogeneous, regime).
+
+## Addendum C — post-design changes for the v2 economics run (EV t102u "Go + compute analytics", 2026-11-11 14:39 PST)
+
+These are **parameter/mechanism changes made after seeing the v1 sweep**. The seven detectors (D1–D7) and their
+thresholds are **not changed**. Thermodynamic accounting is unchanged and still asserted every step. All v2
+settings live in `mvp/sim10.py: V2` (used via `preset=2`); v1 defaults are untouched, so v1 is reproducible.
+
+| change | v1 | v2 | why (v1 diagnosis) |
+|---|---|---|---|
+| `c_auto` maintenance per unit own machinery | 0.004 | 0.02 (5×) | losing machinery didn't pay → no obligate parasites |
+| replication energy threshold | E > c_div+0.1 | E > c_div+0.1+0.5·M (`E_rep_M`) | tie replication to body mass |
+| growth target used by assimilation | 0.2+size | 0.05+0.5·size (same as division target) | v1 grew to a target different from the division target |
+| founder `size` | U(0,1) | U(size_lo, size_hi), default (0,1); sweep small (0,.35)/full/large (.65,1) | test whether "founders too big" blocked infection |
+| founder body mass | 0.3 for all | 2·(0.05+0.5·size) (`M0_by_size`) — taken from the initial state, counted in the ledger | small founders really are small |
+| internal transporter concentration `c_int` | 1.0 | 0.01 | transport work ln(c_int/c_out) kept; v1 value made reuptake cost ≈4.6 kT > its return |
+| transporter overhead `ovh_tr` | 0.1 | 0.02 | same |
+| signal release cap `sig_cap` | 0.004 | 0.01 | raise local signal |
+| transporter Vmax scale `k_rt` | = k_upt (0.06) | 0.02 (separate knob) | V uptake by transporters drained the RD spots |
+| passive uptake `k_upt` | 0.06 | 0.02 | slower drawdown of A |
+| grid / caps | G=40, Nmax 5000, N0 1500 | G=64, Nmax 12000, N0 3000 | bigger world for patterns |
+| initial V seeds | 12 squares | 12·(G/40)²·2 ≈ 61 squares (`v_seed_mul=2`) | at G=64 with 12 seeds the agent-free RD died (probe, 14:45) |
+| trace autocatalyst in the feed `V_res` | 0 | 0.002 (a documented boundary input of V at f·V_res; counted in in_M/in_E) | lets RD spots re-nucleate after a crash; it is a boundary flux, not a source term |
+
+Note on the c_int change: the total free energy of "signal outside → waste" is unchanged; c_int only sets how
+it splits between transport work (ln(c_int/c_out) ≥ 0 paid up front when c_int > c_out) and the catabolic step
+inside (−ΔG° + ln(W/c_int)). Dissipation ≥ 0 is still asserted per process.
+
+Pre-run probes (14:45–14:52 PST, 3–4k steps, recorded here, not tuned to the detectors): agent-free RD keeps
+spots in 3/3 seeds at G=64 (mean V ≈ 0.05–0.06); with agents, **every probed uptake setting (k_upt 0.01–0.03,
+k_rt 0.01–0.06, with or without trace feed V) still lost the spots** after the first population boom
+(t≈1000), while k_upt=0.01 starved the population to ~100. I did not find a setting that keeps both; v2 uses
+k_upt=k_rt=0.02 and reports the spot loss as a result.
+
+Runs: base, no_hijack, mem_inert × seeds 0–2 × 20k steps; agent-free (20k) and closed (8k) checks × 3 seeds;
+robustness sweep c_auto {0.004, 0.02, 0.06} × founder size {small, full, large} × seeds 0–2 × 8k steps (base model).
+New per-window analytics (not detectors): signal half-life ln2/(removal rate), V spot count (components of
+V>0.1) and V variance, transporter net energy and work, entropy production and max ledger residual per window.
