@@ -20,7 +20,7 @@ def d1(ws):
     return hits >= 3, hits, ex[:3]
 
 def d2(name):
-    z = np.load(f"{RUNS}/{name}.npz", allow_pickle=True); inf = list(z["inf"])
+    z = np.load(f"{RUNS}/{name}.npz", allow_pickle=True); inf = [np.asarray(x, float) for x in z["inf"]]
     wins = [i for i, x in enumerate(inf) if len(x) >= 5]
     if len(wins) < 12: return False, dict(n_inf_windows=len(wins))
     cent = {i: inf[i][:, NT:].mean(0) for i in wins}
@@ -45,10 +45,18 @@ def d4(ws):
     for w in h:
         ab = np.array(w["abund"]); TL = np.array(w["TL"])[: len(ab)]
         mx.append(TL[ab[: len(TL)] >= 0.02].max() if (ab[: len(TL)] >= 0.02).any() else 1)
-    return bool(sum(m >= 2.5 for m in mx) >= 3), dict(maxTL_median=float(np.median(mx)), maxTL_max=float(np.max(mx)))
+    mnd = []
+    for w in h:
+        if "TLnd" not in w: continue
+        ab = np.array(w["abund"]); TL = np.array(w["TLnd"])[: len(ab)]; sel = ab[: len(TL)] >= 0.02
+        mnd.append(TL[sel].max() if sel.any() else 1)
+    sf = np.mean([w.get("self_flow", np.nan) / max(w["flow_tot"], 1e-300) for w in h])
+    return bool(sum(m >= 2.5 for m in mx) >= 3), dict(maxTL_median=float(np.median(mx)), maxTL_max=float(np.max(mx)),
+        posthoc_noself_maxTL_median=float(np.median(mnd)) if mnd else float("nan"),
+        posthoc_noself_fires=bool(sum(m >= 2.5 for m in mnd) >= 3) if mnd else None, self_flow_share=float(sf))
 
 def d5(name, ws):
-    z = np.load(f"{RUNS}/{name}.npz", allow_pickle=True); C = list(z["cents"])
+    z = np.load(f"{RUNS}/{name}.npz", allow_pickle=True); C = [np.asarray(x, float) for x in z["cents"]]
     h = ws[len(ws) // 2:]; eh = float(np.median([w["expH"] for w in h]))
     # tracks: chain nearest centroids d<0.9 across consecutive windows
     W = ws[0]["t"]; tracks = {k: 1 for k in range(len(C[0]))}; long = 0; cur = {k: k for k in range(len(C[0]))}
@@ -85,7 +93,7 @@ d6 = [(next(x["mem2"] for x in rows if x["run"] == f"full_in1.0_s{s}"), next(x["
 if d6:
     dd = np.array([a - b for a, b in d6]); m = dd.mean(); se = dd.std(ddof=1) / np.sqrt(len(dd)) if len(dd) > 1 else np.nan
     print(f"D6 mem full-inert per seed {dd.round(3).tolist()} mean {m:+.3f} CI [{m-4.303*se:+.3f},{m+4.303*se:+.3f}]")
-for x in rows: print({k: (round(v, 4) if isinstance(v, float) else v) for k, v in x.items()})
+for x in rows: print({k: (f'{v:.3g}' if isinstance(v, float) else v) for k, v in x.items()})
 
 # ---- figures ----
 cols = plt.cm.tab10.colors

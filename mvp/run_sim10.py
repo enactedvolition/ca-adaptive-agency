@@ -36,6 +36,11 @@ def window_stats(w, lab_all, cents, rng):
         if L[key]:
             e = np.concatenate(L[key]); e = e[(e[:, 0] >= 0) & (e[:, 1] >= 0)]
             np.add.at(flow, (e[:, 1].astype(int), e[:, 0].astype(int)), e[:, 2])
+    flow_nd = flow.copy(); np.fill_diagonal(flow_nd, 0)   # post-hoc variant: exclude within-cluster feeding
+    TLnd = np.ones(K)
+    for _ in range(50):
+        tot = fin + flow_nd.sum(0)
+        TLnd = 1 + np.where(tot > 0, (flow_nd * TLnd[:, None]).sum(0) / np.maximum(tot, 1e-300), 0)
     TL = np.ones(K)
     for _ in range(50):
         tot = fin + flow.sum(0)
@@ -54,7 +59,7 @@ def window_stats(w, lab_all, cents, rng):
     H = -(pc[pc > 0] * np.log(pc[pc > 0])).sum()
     return dict(t=w.t, N=int(a.size), n_inside=int((w.host[a] >= 0).sum()), K=int(K), expH=float(np.exp(H)),
                 abund=pc.tolist(), bf=bf.tolist(), bi=bi.tolist(), fs=fs.tolist(), ins=ins.tolist(),
-                TL=TL.tolist(), fin=fin.tolist(), flow_tot=float(flow.sum()), n_inf=int(sum(len(x) for x in L["inf"])),
+                TL=TL.tolist(), TLnd=TLnd.tolist(), self_flow=float(np.trace(flow)), fin=fin.tolist(), flow_tot=float(flow.sum()), n_inf=int(sum(len(x) for x in L["inf"])),
                 n_eng=int(sum(len(x) for x in L["eng"])),
                 agg_frac=float(inagg.sum() / max(a.size, 1)), agg_sd=float(np.mean(sds)) if sds else float("nan"),
                 agg_birth_lowp=float((bpa[:, 1] < 0.5).mean()) if len(bpa) else float("nan"),
@@ -90,7 +95,6 @@ def main(name, outdir, **kw):
             w.lab[:] = -1; w.lab[a] = lab_new; cents = cents_new; w.new_window()
             if w.t in (cfg.steps // 2, cfg.steps):
                 s = w.snapshot(); s["F"] = w.F.copy(); s["lab"] = lab_new; snaps[w.t] = s
-            if a.size == 0: break
     ko = ko_test(w) if w.alive.any() else None
     R = np.array(w.resid)
     res = dict(name=name, cfg=cfg.__dict__, windows=wins, ko=ko, runtime_s=time.time() - t0,
