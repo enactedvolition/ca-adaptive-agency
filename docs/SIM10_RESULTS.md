@@ -41,7 +41,7 @@ Reading, bluntly:
 * **D3 null.** Adhesive aggregates exist in a few runs (18.7% of agents in full in0.5 s2; 36% in mem_inert s2) but
   phenotype SD inside them is 0.01–0.12 (< 0.2): no differentiated states, no germ/soma split.
 * **D4 fires but is weak evidence.** Max trophic level ≥2.5 among abundant clusters in 14/15 non-control runs,
-  mostly from engulfment chains. Caveat found after running: within-cluster feeding (cannibalism) is 5–39% of
+  mostly from engulfment chains. Caveat found after running: within-cluster feeding (cannibalism) is 4–39% of
   consumer flow and inflates TL (some windows hit 51 from self-loops). A post-hoc variant excluding self-loops still
   fires in 14/15 (median max TL 2.2–4.2). Post-hoc, so treat as descriptive.
 * **D5 fires but is mostly standing variation.** Founders are uniform-random 40-d genomes, so many clusters exist
