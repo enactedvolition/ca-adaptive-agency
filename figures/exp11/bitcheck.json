@@ -1,0 +1,12 @@
+{
+ "sw_full": {
+  "n_fields": 56,
+  "mismatched": [],
+  "bit_for_bit": true,
+  "prem_all_zero": true
+ },
+ "guard_changes_dynamics": true,
+ "mean_claim_mg1_300": 0.44291451573371887,
+ "mean_prem_mg1_300": 0.0036709161940962076,
+ "steps": 300
+}
