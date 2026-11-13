@@ -38,6 +38,7 @@ You need Python 3.11–3.13. No GPU is needed.
 | Exp 10 (`exp10_run.py`, `exp10_cf.py`) | Wall-protected intake: do privately valuable walls produce self-built dark rooms? | **Build up in: none; selection on build CI>0 in: none; self-built CI>0 in: none.** See section |
 | Exp 11 (`exp11_run.py`, `exp11_cf.py`) | Mass-ownership guard dose-response: is building selected once its private return can beat its cost? | **Build up in: none; selection on build CI>0 in: none; self-built CI>0 in: none.** See section |
 | Exp 12 (`exp12_run.py`, `analyze12.py`) | Pre-registered seed extension of Exp 11 (n = 9): is building selected more when heredity is intact? | **Primary ΣS(build) sw_mg2 − sw_mg2_shuffled CI>0 (+0.146 [+0.027, +0.264]); primary mean-build contrast not (+0.047 [−0.003, +0.097]).** See section |
+| Exp 13 (`exp13_run.py`, `analyze13.py`) | Long horizon (10000 steps, n = 9): does the Exp 12 selection on building turn into more building? | **Pre-registered mean-build contrast sw_mg2 − sw_mg2_shuffled over t ≥ 5000 does not hold (+0.011 [−0.045, +0.068]).** Transient divergence at 2000–6000 steps, gone by 8000. See section |
 
 ## Experiment 4: make regulation pay
 
@@ -304,6 +305,20 @@ Exp 11 left one lead at n = 3: with mass-based private walls at guard 2, Price s
 
 **Reading.** The selection half of the lead holds: with private walls and heredity intact, building is positively selected relative to the broken-heredity control (8 of 9 seeds positive). The trait-response half doesn't clear its CI: mean build is not reliably higher than in the shuffled control, because within sw_mg2 the selection term is largely offset by a negative within-individual term (ΣW build −0.141 [−0.287, +0.005]; net ΣΔz̄ +0.016 [−0.043, +0.076]). The new seeds alone don't reach significance (n = 6), so this is a modest, not a robust, effect. Price residual ≤ 2.7e-16. This is selection on a niche-construction trait, not agency, and no agency claim is made. Tables: `figures/exp12/tables12.md`; figure: `figures/exp12/exp12_contrasts.png`.
 
+## Experiment 13: long horizon (does selection on building become more building?)
+
+Exp 12 found that with mass-based private walls (guard 2), building is selected more when heredity is intact than when it's broken. But mean build barely moved in 3000 steps, because a negative within-individual term cancelled the selection. Exp 13 runs the same sim9 harness to 10000 steps, seeds 0–8, arms sw_full, sw_mg2 and sw_mg2_shuffled, with on-disk checkpoints every 1000 steps (resume is bit-for-bit, `figures/exp13/resumecheck.json`). Seeds 0–2 reproduce the Exp 11 series exactly up to t = 3000. **Pre-registered test (fixed 2026-11-12):** sw_mg2 − sw_mg2_shuffled on mean build over t ≥ 5000, paired by seed, n = 9, 95% t CI > 0.
+
+  | contrast (paired, n = 9, t ≥ 5000) | mean build | Price ΣS build | ΣΔz̄ build | wall mass |
+  |---|---|---|---|---|
+  | sw_mg2 − sw_mg2_shuffled (pre-registered) | **+0.011 [−0.045, +0.068]**, p = 0.65 | +0.206 [−0.144, +0.556] | −0.040 [−0.138, +0.058] | +216 [−28, +460] |
+  | sw_mg2 − sw_full | +0.028 [−0.086, +0.142] | +0.364 [−0.053, +0.782] | −0.005 [−0.090, +0.080] | +953 [+374, +1531] |
+  | sw_mg2_shuffled − sw_full | +0.016 [−0.122, +0.155] | +0.158 [−0.042, +0.359] | +0.035 [−0.103, +0.173] | +736 [+90, +1383] |
+
+  Not pre-registered, window by window (sw_mg2 − sw_mg2_shuffled, mean build): 0–2k +0.025 [−0.008, +0.059]; 2–4k +0.062 [+0.010, +0.114]; 4–6k +0.042 [+0.007, +0.077]; 6–8k +0.014 [−0.037, +0.065]; 8–10k −0.001 [−0.084, +0.082].
+
+**Reading.** The pre-registered test fails. With heredity intact, building does pull ahead of the shuffled control for a while (2000–6000 steps, a post-hoc window, 15 window tests in total, so treat it as a hint). Then the gap closes, and over the late half mean build is the same in all three arms (≈0.49–0.52). The selection term stays positive on average but becomes noisy (seed 5 +1.07, seed 8 −0.64) and isn't converted into a lasting trait difference. The guard raises total wall mass and population in both guard arms whether or not heredity is intact, so private walls change the ecology rather than producing a heritable building strategy. Taken with Exp 10–12: in this world, making walls privately valuable produces a transient, modest selection effect on building and no durable niche-construction strategy. Price residual ≤ 3.8e-16. No agency claim. Tables: `figures/exp13/tables13.md`; figure: `figures/exp13/exp13_trajectory.png`.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
@@ -315,6 +330,7 @@ cd mvp
 ../.venv/bin/python exp6_regulate.py --procs 6 && ../.venv/bin/python analyze6.py   # needs the Exp 5 forks in runs5/
 ../.venv/bin/python exp7_darkroom.py --procs 6 && ../.venv/bin/python analyze7.py   # needs the Exp 5 forks in runs5/
 ../.venv/bin/python exp8_counterfactual.py --procs 4 && ../.venv/bin/python analyze8.py   # needs the Exp 5 forks in runs5/
+../.venv/bin/python exp13_run.py --resumecheck && for B in 0,1,2 3,4,5 6,7,8; do EXP13_SEEDS=$B ../.venv/bin/python exp13_run.py --procs 3; done && ../.venv/bin/python analyze13.py   # needs runs11/ for the Exp 11 reproducibility check
 ../.venv/bin/python exp9_attr.py --bitcheck && ../.venv/bin/python exp9_attr.py --procs 4 && ../.venv/bin/python exp9_cf.py --procs 4 && ../.venv/bin/python analyze9.py   # exp9_attr checks against the Exp 5 forks in runs5/
 ```
 Long runs checkpoint to disk, one file per batch, so they can be resumed. Run dumps (`runs*/`) and videos aren't in the repo because of their size.

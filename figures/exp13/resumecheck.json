@@ -1,0 +1,6 @@
+{
+ "steps": 200,
+ "series_bit_for_bit": true,
+ "state_bit_for_bit": true,
+ "n_series_len": 19
+}
