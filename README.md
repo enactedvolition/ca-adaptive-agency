@@ -319,6 +319,26 @@ Exp 12 found that with mass-based private walls (guard 2), building is selected 
 
 **Reading.** The pre-registered test fails. With heredity intact, building does pull ahead of the shuffled control for a while (2000–6000 steps, a post-hoc window, 15 window tests in total, so treat it as a hint). Then the gap closes, and over the late half mean build is the same in all three arms (≈0.49–0.52). The selection term stays positive on average but becomes noisy (seed 5 +1.07, seed 8 −0.64) and isn't converted into a lasting trait difference. The guard raises total wall mass and population in both guard arms whether or not heredity is intact, so private walls change the ecology rather than producing a heritable building strategy. Taken with Exp 10–12: in this world, making walls privately valuable produces a transient, modest selection effect on building and no durable niche-construction strategy. Price residual ≤ 3.8e-16. No agency claim. Tables: `figures/exp13/tables13.md`; figure: `figures/exp13/exp13_trajectory.png`.
 
+## Experiment 14: perturbation recovery on long-evolved populations (Exp 13 forks)
+
+Exp 5/6 tested active vs passive recovery only on ~2500-step forks. Exp 14 runs the same protocols on the Exp 13 sim9 forks (sw_full and sw_mg2, seeds 0–8, t = 10000, with t = 5000 as the horizon comparison, 40 matched targets per run). Phase A is the Exp 5 protocol (hidden-state kicks ε 0.03 / 0.1 / 0.3, a Lyapunov-direction kick and ongoing noise; closed loop vs open-loop vs frozen-input replay of the same brain, 100 steps). Phase B is the Exp 6 energy-drop test (50% of energy removed; closed vs actions clamped to the unperturbed twin vs sensor-blind, 120 steps). New `sim9c.py` is sim9 plus the sim6-style observer hook. **Pre-registered primary (fixed 2026-11-13, before data):** closed − open-loop recovery at t = 10000 in sw_full, kick ε = 0.1, recovery = −log(d(50)/ε), per-seed mean, paired n = 9, 95% t CI > 0.
+
+- **Primary: closed − open-loop recovery = −19.25 [−20.85, −17.66]**, p = 2.9e-09, 237 targets, positive in 0/9 seeds. **Does not hold; the sign is the opposite of what active regulation predicts.** Open-loop replay (frozen inputs) contracts to log r(50) ≈ −21, near float32 precision, so the magnitude of the gap is bounded by numerics; the sign is not. The closed loop stays near log r(50) ≈ −1.6, because a kicked agent behaves differently and the coupled world carries the difference forward. Same picture as Exp 3–5: the passive brain is an echo-state contraction, the closed loop is world-coupled.
+- Closed − open-loop recovery is negative with the 95% CI entirely below 0 in all 20 arm × horizon × condition cells (both arms, both horizons, kicks 0.03/0.1/0.3, Lyapunov kick; ongoing noise −2.0 to −2.5). Horizon (t10000 − t5000) and guard (sw_mg2 − sw_full) contrasts on closed − open all include 0 (post hoc).
+- **Energy drop** (A = r_cl − r_clamp, B = r_cl − r_blind; all CIs include 0 except one B):
+
+  | arm @ t | r closed | A | B |
+  |---|---|---|---|
+  | sw_full@10000 | +0.512 | −0.037 [−0.227, +0.154] | −0.126 [−0.348, +0.096] |
+  | sw_full@5000 | +0.802 | +0.001 [−0.196, +0.199] | +0.050 [−0.062, +0.162] |
+  | sw_mg2@10000 | +0.338 | −0.001 [−0.141, +0.138] | −0.053 [−0.200, +0.093] |
+  | sw_mg2@5000 | +0.156 | −0.002 [−0.148, +0.144] | −0.082 [−0.158, −0.007] |
+
+  Sensing energy and acting on it gives no recovery beyond a passive body replaying the unperturbed actions, and the blind control does as well or (sw_mg2@5000, B < 0, 1 of 8 CIs, not corrected) slightly better. Same as Exp 6 at ~2500 steps. Hidden kicks scored on energy are smaller than the world-chaos floor in all four arms (log ratio −2.4 to −2.8, CIs below 0).
+- Checks: forks load equal to the saved arrays, the Exp 13 harness from t = 5000 reproduces the saved t = 10000 forks bit for bit (sw_full, seeds 0–2), the unperturbed reference is bit-identical across batches, clamping an unperturbed agent to its own actions gives max |ΔE| = 0 (targets whose reference survives), phase A 36/36 and phase B 36/36 checkpoints. Phase-A (sim9) and phase-B (sim9c) references differ by XLA float drift (max |ΔE| 1.3 over 100 steps, 4.8e-07 over 10); every contrast is within one phase.
+
+**Reading.** By the decision rule, no agency claim: active recovery does not beat passive recovery at 4× the Exp 5 horizon or under guarded walls, on hidden state or on energy. Tables: `figures/exp14/tables14.md`; report: `figures/exp14/report14.json`; figures in `figures/exp14/`.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
@@ -331,6 +351,7 @@ cd mvp
 ../.venv/bin/python exp7_darkroom.py --procs 6 && ../.venv/bin/python analyze7.py   # needs the Exp 5 forks in runs5/
 ../.venv/bin/python exp8_counterfactual.py --procs 4 && ../.venv/bin/python analyze8.py   # needs the Exp 5 forks in runs5/
 ../.venv/bin/python exp13_run.py --resumecheck && for B in 0,1,2 3,4,5 6,7,8; do EXP13_SEEDS=$B ../.venv/bin/python exp13_run.py --procs 3; done && ../.venv/bin/python analyze13.py   # needs runs11/ for the Exp 11 reproducibility check
+../.venv/bin/python exp14_perturb.py --procs 3 --phases A,B && ../.venv/bin/python analyze14.py   # needs runs13/ forks (~16 h on 3 procs); see run14_chain.sh
 ../.venv/bin/python exp9_attr.py --bitcheck && ../.venv/bin/python exp9_attr.py --procs 4 && ../.venv/bin/python exp9_cf.py --procs 4 && ../.venv/bin/python analyze9.py   # exp9_attr checks against the Exp 5 forks in runs5/
 ```
 Long runs checkpoint to disk, one file per batch, so they can be resumed. Run dumps (`runs*/`) and videos aren't in the repo because of their size.

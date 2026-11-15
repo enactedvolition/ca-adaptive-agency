@@ -1,0 +1,26 @@
+{
+ "variant": "sw_full",
+ "from_t": 5000,
+ "to_t": 10000,
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "per_seed": {
+  "s0": {
+   "mismatched": [],
+   "n_fields": 57
+  },
+  "s1": {
+   "mismatched": [],
+   "n_fields": 57
+  },
+  "s2": {
+   "mismatched": [],
+   "n_fields": 57
+  }
+ },
+ "bit_for_bit": true,
+ "wall_s": 253.36629986763
+}
