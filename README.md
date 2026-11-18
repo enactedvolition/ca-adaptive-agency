@@ -339,6 +339,18 @@ Exp 5/6 tested active vs passive recovery only on ~2500-step forks. Exp 14 runs 
 
 **Reading.** By the decision rule, no agency claim: active recovery does not beat passive recovery at 4× the Exp 5 horizon or under guarded walls, on hidden state or on energy. Tables: `figures/exp14/tables14.md`; report: `figures/exp14/report14.json`; figures in `figures/exp14/`.
 
+## Experiment 16: a world where sensing energy pays? (design pass + pay-check; not evolved)
+
+Exp 6/14: sensor-blind bodies recover as well as closed loop. Exp 15: a satiety cost on eating gave no payoff to energy-aware eating. The structural reason is that the one decision whose right answer depends on energy, *when to reproduce*, is taken by the simulator (`rep > 0 & E > 1.6`), and eating pays at every E. New `sim12.py` = sim11 + traced param `rep_free` (0 = off; reproduces sim11 on all 64 fields and sim9 on all 58 fields bit for bit, seeds 0–4 × 300 steps). With rep_free = 1, the simulator's gate drops to E_rep_lo = 0.35 (pooled 25th percentile of live E on the Exp 15b sw_full t = 3000 forks, fixed before any test), so the brain's rep action decides when to reproduce (child 0.4·E, parent −0.5·E as before). A homeostatic band on eating was considered and rejected by reasoning (same single lever as Exp 15). C1 was the only candidate tested.
+
+**Pre-registered pay-check (NIGHTLY_LOG 2026-11-18):** from the sw_full t = 3000 forks (seeds 0–2, evolved brains drive everything except rep, 400 steps, last 200 scored), compare aware rep (= +1 iff E > thr, thr ∈ {0.8, 1.2, 1.6}) with blind rep at the same mean rate. PASS iff the best threshold (by population) gives population ≥ +5% on average with all 3 seeds positive, AND net intake per agent not lower.
+
+- **FAIL.** Best thr 0.8: population **+6.9%** (+1.9 / +13.0 / +5.8%), net intake per agent **−13.0%** (all seeds negative). thr 1.2: +10.8% / −13.0%. thr 1.6: +26.9% / −13.3%. Aware timing gets more births from the same rep rate (blind attempts often fall below the gate), so it buys more agents sharing the same food, at lower mean E (0.35–0.59 vs 0.59–1.04). The literal suggested criterion (net ≥ +5%) fails too. Secondary, from the random initial population: best thr 0.8, +26.4% / −7.0%, FAIL. (thr 1.2 there is +6.9% / +3.0%, but it is not the best threshold.)
+- Unmodified evolved brains under rep_free = 1, which reproduce whenever the gate allows and ignore E, reach a *higher* population (563 / 644 / 616) than every aware policy, at mean E ≈ 0.19.
+- **Post hoc mixed competition** (specified in the log before running): aware lineages (even `root`) vs always-reproduce lineages (odd `root`) in one world. The aware share falls at every threshold in every seed: Δshare thr 0.8 −0.04 / −0.40 / −0.26, thr 1.2 −0.20 / −0.55 / −0.46, thr 1.6 −0.44 / −0.59 / −0.60 over 400 steps. Brain-gated reproduction **selects against** energy-conditioned timing here. Breeding as fast as the gate allows beats waiting until reserves can carry a child.
+
+**Reading.** C1 doesn't create a payoff for interoception that selection can see, so the pre-registered evolution (sw_full / sw_pays / sw_pays_blind, B = r_cl − r_blind) was not run. No agency claim; nothing was tested against the agency bar. Tables: `figures/exp16/tables16.md`; report: `figures/exp16/report16.json`; figures `figures/exp16/exp16_paycheck.png`, `exp16_compete.png`. Code: `mvp/sim12.py`, `mvp/exp16_run.py` (`--bitcheck`, `--paycheck`), `mvp/exp16_compete.py`, `mvp/analyze16.py`; `mvp/exp16_perturb.py` (Exp 5/6 protocols on sim12 forks) is written but unused.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

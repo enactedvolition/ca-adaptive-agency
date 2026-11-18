@@ -1,0 +1,58 @@
+{
+ "seed0": {
+  "n_fields_sim9": 58,
+  "n_fields_sim11": 64,
+  "n_fields_sim12": 69,
+  "mismatched_vs_sim9": [],
+  "mismatched_vs_sim11": [],
+  "births_logged": 475.0
+ },
+ "seed1": {
+  "n_fields_sim9": 58,
+  "n_fields_sim11": 64,
+  "n_fields_sim12": 69,
+  "mismatched_vs_sim9": [],
+  "mismatched_vs_sim11": [],
+  "births_logged": 434.0
+ },
+ "seed2": {
+  "n_fields_sim9": 58,
+  "n_fields_sim11": 64,
+  "n_fields_sim12": 69,
+  "mismatched_vs_sim9": [],
+  "mismatched_vs_sim11": [],
+  "births_logged": 466.0
+ },
+ "seed3": {
+  "n_fields_sim9": 58,
+  "n_fields_sim11": 64,
+  "n_fields_sim12": 69,
+  "mismatched_vs_sim9": [],
+  "mismatched_vs_sim11": [],
+  "births_logged": 429.0
+ },
+ "seed4": {
+  "n_fields_sim9": 58,
+  "n_fields_sim11": 64,
+  "n_fields_sim12": 69,
+  "mismatched_vs_sim9": [],
+  "mismatched_vs_sim11": [],
+  "births_logged": 464.0
+ },
+ "mechanic_on_changes_dynamics": true,
+ "blind_changes_dynamics_vs_pays": true,
+ "pop300": {
+  "sw_full": 460,
+  "sw_pays": 533,
+  "sw_pays_blind": 423
+ },
+ "bit_for_bit": true,
+ "steps": 300,
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4
+ ]
+}
