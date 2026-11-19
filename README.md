@@ -351,6 +351,24 @@ Exp 6/14: sensor-blind bodies recover as well as closed loop. Exp 15: a satiety 
 
 **Reading.** C1 doesn't create a payoff for interoception that selection can see, so the pre-registered evolution (sw_full / sw_pays / sw_pays_blind, B = r_cl − r_blind) was not run. No agency claim; nothing was tested against the agency bar. Tables: `figures/exp16/tables16.md`; report: `figures/exp16/report16.json`; figures `figures/exp16/exp16_paycheck.png`, `exp16_compete.png`. Code: `mvp/sim12.py`, `mvp/exp16_run.py` (`--bitcheck`, `--paycheck`), `mvp/exp16_compete.py`, `mvp/analyze16.py`; `mvp/exp16_perturb.py` (Exp 5/6 protocols on sim12 forks) is written but unused.
 
+## Experiment 17: ungated fixed-cost reproduction (gate passes; evolution does not produce energy-aware timing)
+
+Exp 16 showed that lowering the reproduction gate still leaves the simulator doing the energy check, so breeding fast wins. New `sim13.py` = sim12 + traced param `rep_fixed` (0 = off; equals sim12 on all 69 fields bit for bit, sw_full seeds 0–4, sw_pays 0–1, sw_pays_blind 0, 300 steps; `tests/test_sim13.py`). With rep_fixed = 1 there is **no simulator energy gate**. A birth gives the child a fixed **E_endow = 0.6335** (pooled median live E on the Exp 15b sw_full t = 3000 forks, seeds 0–2, n = 1591), and the parent pays E_endow + **E_over = 0.1584** (the old rule's 0.25 overhead ratio), so the total is C = 0.792. The parent dies if its E ≤ 0. Energy is conserved: the child gets min(E_endow, max(E_parent − E_over, 0)), so an attempt below C never creates energy.
+
+**Pre-registered gate (mixed competition, NIGHTLY_LOG 2026-11-19):** lineages by root parity in one world, from the same forks, 400 steps. Aware = rep iff E > THR vs (A) always-reproduce and (B) matched-rate blind (same per-agent attempt rate, random timing). Primary THR = 0.8 (the grid value nearest C). PASS iff Δshare > 0 in all 3 seeds for both contrasts.
+
+- **PASS.** THR 0.8: Δshare vs always **+0.107 / +0.304 / +0.276**, vs matched blind **+0.077 / +0.189 / +0.247**. With n = 3, the 95% t CIs include 0 (+0.229 [−0.037, +0.495], +0.171 [−0.043, +0.385]), partly because seed 0 starts at a share of 0.893 and is capped at +0.107. All 24 threshold × contrast × seed values (THR 0.8–1.6) are positive. Against always-reproduce the win is close to trivial: those lineages collapse within ~20 steps. **Post hoc parity swap** (aware as the minority clade): vs always +0.892 / +0.694 / +0.723, vs blind +0.405 / +0.497 / +0.443. So this is not a clade artefact.
+
+**Evolution** (sim13 sw_full / sw_pays = rep_free 1 + rep_fixed 1 / sw_pays_blind, Exp 16 base, 3000 steps, seeds 0–8; exact Price decomposition, max |residual| 1.3e-16):
+
+- Selection found **"reproduce rarely"**, not "reproduce when E is high". The rep-action > 0 fraction fell from 0.60 (sw_full) to **0.015 in sw_pays and 0.014 in sw_pays_blind**. Rep–E correlation (last 500 steps), sw_pays − sw_pays_blind: **−0.006 [−0.034, +0.022]**. Both arms are negative (−0.078, −0.071).
+- Rep-sensitivity to the energy channel (c_esr/l0n) at t = 3000: sw_pays +0.072 [−0.014, +0.158] (blind ≡ 0 by construction; vs sw_full +0.045 [−0.077, +0.168]). Cumulative Price selection ΣS: +0.170 [−0.068, +0.407]. Neither excludes 0.
+- Population (last 500): sw_pays 460 [391, 530] vs sw_pays_blind 522 [422, 621] vs sw_full 531 [497, 564].
+
+**Primary B (Exp 6 energy drop, sw_pays t = 3000, n = 9): FAIL**, B = r_cl − r_blind = +0.107 [−0.497, +0.710]. Secondary A = r_cl − r_clamp = −0.801 [−1.802, +0.200], so closed loop does not beat passive replay. Caveat: one birth moves 0.79 E, so the stored-E deficit metric is dominated by births inside the window (|r| > 1). Phase A and the sw_full / remaining-blind controls were not run (time); they can be resumed from `mvp/runs17p/`.
+
+**Reading.** The world now makes energy-aware timing pay in direct competition. But open-ended evolution from random brains settled on a low blind reproduction rate, which works without the energy sense and is matched by the blind control. No evidence that evolved brains use the energy channel for reproduction. No agency claim. Tables: `figures/exp17/tables17.md`, `perturb17.md`; reports `report17.json`, `perturb17.json`; figures `exp17_compete.png`, `exp17_evo.png`. Code: `mvp/sim13.py`, `mvp/exp17_run.py` (`--bitcheck`, `--compete THR [--swap 1]`), `mvp/exp17_evo.py`, `mvp/run17_chain.sh`, `mvp/exp17_perturb.py`, `mvp/finalize17.py`, `mvp/analyze17.py`.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

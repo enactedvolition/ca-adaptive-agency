@@ -1,0 +1,64 @@
+{
+ "sw_full_s0": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 475.0,
+  "pop": 460
+ },
+ "sw_full_s1": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 434.0,
+  "pop": 436
+ },
+ "sw_full_s2": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 466.0,
+  "pop": 429
+ },
+ "sw_full_s3": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 429.0,
+  "pop": 434
+ },
+ "sw_full_s4": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 464.0,
+  "pop": 414
+ },
+ "sw_pays_s0": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 1789.0,
+  "pop": 533
+ },
+ "sw_pays_s1": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 1764.0,
+  "pop": 512
+ },
+ "sw_pays_blind_s0": {
+  "n_fields_sim12": 69,
+  "n_fields_sim13": 69,
+  "mismatched": [],
+  "births": 1801.0,
+  "pop": 423
+ },
+ "mechanic_on_changes_dynamics": true,
+ "pop300_on_vs_off": [
+  160,
+  533
+ ],
+ "bit_for_bit": true
+}
