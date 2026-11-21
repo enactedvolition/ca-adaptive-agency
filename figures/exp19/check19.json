@@ -1,0 +1,8 @@
+{
+ "true_eq_plain_fields_mismatch": [],
+ "marker_eq_implant": true,
+ "n_implanted": 215,
+ "n_live": 431,
+ "implant_rule_exact_t0": false,
+ "implant_rule_agree_frac": 0.9906976744186047
+}

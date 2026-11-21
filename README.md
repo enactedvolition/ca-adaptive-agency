@@ -369,6 +369,16 @@ Exp 16 showed that lowering the reproduction gate still leaves the simulator doi
 
 **Reading.** The world now makes energy-aware timing pay in direct competition. But open-ended evolution from random brains settled on a low blind reproduction rate, which works without the energy sense and is matched by the blind control. No evidence that evolved brains use the energy channel for reproduction. No agency claim. Tables: `figures/exp17/tables17.md`, `perturb17.md`; reports `report17.json`, `perturb17.json`; figures `exp17_compete.png`, `exp17_evo.png`. Code: `mvp/sim13.py`, `mvp/exp17_run.py` (`--bitcheck`, `--compete THR [--swap 1]`), `mvp/exp17_evo.py`, `mvp/run17_chain.sh`, `mvp/exp17_perturb.py`, `mvp/finalize17.py`, `mvp/analyze17.py`.
 
+## Experiment 19: is energy-conditioned reproduction rewarded once it exists? (yes; Exp 17's null was a discovery failure)
+
+Start: Exp 17 sw_pays t = 3000 forks (sim13, rep_free 1, rep_fixed 1; brains that evolved a blind ~1.5% reproduction rate). In a random 50% of live agents one hidden unit is rewired so that the brain reproduces iff sensed E > 0.8 (= C, the Exp 17/18 threshold); all weights stay mutable. **TRUE:** implanted agents sense their own E. **SHAM:** the same implanted agents' energy channel reads a random other live agent's E (sim13's existing `ctl["e_off"]` hook; no sim change). 1500 steps, seeds 0–8, exact Price decomposition (max |residual| 6.7e-16). Pre-registered in NIGHTLY_LOG 2026-11-21.
+
+- **PASS.** Implanted share, last 200 steps minus t = 0: TRUE **+0.496 [+0.493, +0.498]** (0.50 → ≥ 0.99 in 9/9 seeds), SHAM −0.500 (extinct by t ≈ 200); paired D = **+0.995 [+0.993, +0.998]**, n = 9. Price ΣS on the implant marker: TRUE − SHAM +1.22 [+1.15, +1.29].
+- Rep–own-E correlation (pre-step E, last 500 steps): TRUE − SHAM +0.070 [+0.053, +0.087]. Within the implanted genotype it erodes from +0.25 (first 100 steps) to +0.16.
+- SHAM attempts at ~1.3× the TRUE rate early on (not exactly rate-matched); the TRUE-arm result (implant displaces evolved blind brains) does not depend on SHAM.
+
+**Reading.** In this world, E-conditioned reproduction timing is strongly selected once present, so Exp 17's evolution failed to *find* it rather than it being unrewarded. No agency claim (no recovery test). Tables `figures/exp19/tables19.md`, report `report19.json`, figure `exp19_share.png`. Code: `mvp/exp19_run.py` (`--check`, arms `true` / `sham`), `mvp/run19_chain.sh`, `mvp/analyze19.py`, `tests/test_exp19.py`.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
