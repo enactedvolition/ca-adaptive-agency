@@ -379,6 +379,14 @@ Start: Exp 17 sw_pays t = 3000 forks (sim13, rep_free 1, rep_fixed 1; brains tha
 
 **Reading.** In this world, E-conditioned reproduction timing is strongly selected once present, so Exp 17's evolution failed to *find* it rather than it being unrewarded. No agency claim (no recovery test). Tables `figures/exp19/tables19.md`, report `report19.json`, figure `exp19_share.png`. Code: `mvp/exp19_run.py` (`--check`, arms `true` / `sham`), `mvp/run19_chain.sh`, `mvp/analyze19.py`, `tests/test_exp19.py`.
 
+## Experiment 20: perturbation recovery on the Exp 19 TRUE population (passes the decision rule; the mechanism is reproduction timing)
+
+Exp 19 TRUE rerun (identical series) saved at t = 1500; 40 random implanted-genotype targets per seed lose 50% of E; 150 steps; arms closed loop (CL), OPEN (all 8 actions replayed from the unperturbed run), FROZEN (sensed E replaced by the unperturbed run's E). Recovery r counts the target's own E **plus energy passed to its children**. Pre-registered in `NIGHTLY_LOG.md` (2026-11-22). Code `mvp/exp20_run.py`, `mvp/analyze20.py`, `mvp/run20_chain.sh`, `tests/test_exp20.py`; tables/figure in `figures/exp20/`.
+
+- **Primary PASS (n = 9, paired 95% t CI):** A = r_CL − r_OPEN **+0.404 [+0.194, +0.613]** (8/9), B = r_CL − r_FROZEN **+0.367 [+0.144, +0.591]** (9/9). clamp0 validity exact.
+- But on targets with no births in any arm, own-E recovery shows no CL advantage (A +0.068 [−0.010, +0.146], B −0.017 [−0.085, +0.051]): the benefit is the implanted rule withholding (suicidal) births while depleted, not foraging harder.
+- Post hoc: the implanted threshold has not drifted (median E_thr 0.800 [0.799, 0.801]); live E fell (share above 0.8: −0.27), so the rep–E coupling erosion looks ecological.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

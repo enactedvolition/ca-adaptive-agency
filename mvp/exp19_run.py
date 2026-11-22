@@ -7,7 +7,7 @@ and a = c_esr/l0n. No sim change.
   EXP19_SEEDS=0,1,2 python exp19_run.py true       (one arm per process; rerun to resume from checkpoint; finished runs skipped)"""
 import os, sys, time, json, pickle
 import numpy as np
-HERE = os.path.dirname(os.path.abspath(__file__)); OUT = os.path.join(HERE, "runs19"); sys.path.insert(0, HERE)
+HERE = os.path.dirname(os.path.abspath(__file__)); OUT = os.environ.get("EXP19_OUT", os.path.join(HERE, "runs19")); sys.path.insert(0, HERE)
 os.environ["XLA_FLAGS"] = "--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1"
 STEPS = int(os.environ.get("EXP19_STEPS", "1500")); CK = 500; DT = 10
 SEEDS = [int(x) for x in os.environ.get("EXP19_SEEDS", "0,1,2").split(",")]; TAG = "s" + "".join(map(str, SEEDS))
@@ -136,6 +136,9 @@ def run(arm):
         if t % CK == 0 and t < STEPS:
             pickle.dump(dict(t=t, st={k: np.asarray(x) for k, x in st.items()}, series=ser, prev=prev), open(ckp + ".tmp", "wb"), protocol=5); os.replace(ckp + ".tmp", ckp)
             print(arm, TAG, t, f"{time.time()-t0:.0f}s ckpt", flush=True)
+    if os.environ.get("EXP19_FORKDIR"):   # Exp 20 hook: save the final state per seed (no dynamics change)
+        os.makedirs(os.environ["EXP19_FORKDIR"], exist_ok=True)
+        for b, sd in enumerate(SEEDS): np.savez(os.path.join(os.environ["EXP19_FORKDIR"], f"fork20_s{sd}_t{STEPS}.npz"), **{k: np.asarray(x[b]) for k, x in st.items()})
     res = dict(arm=arm, seeds=SEEDS, steps=STEPS, DT=DT, params=BASE, series=[{k: np.asarray(v) for k, v in s.items()} for s in ser], wall_s=time.time() - t0)
     pickle.dump(res, open(path + ".tmp", "wb")); os.replace(path + ".tmp", path)
     if os.path.exists(ckp): os.remove(ckp)
