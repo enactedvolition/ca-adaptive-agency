@@ -387,6 +387,15 @@ Exp 19 TRUE rerun (identical series) saved at t = 1500; 40 random implanted-geno
 - But on targets with no births in any arm, own-E recovery shows no CL advantage (A +0.068 [−0.010, +0.146], B −0.017 [−0.085, +0.051]): the benefit is the implanted rule withholding (suicidal) births while depleted, not foraging harder.
 - Post hoc: the implanted threshold has not drifted (median E_thr 0.800 [0.799, 0.801]); live E fell (share above 0.8: −0.27), so the rep–E coupling erosion looks ecological.
 
+## Experiment 21: no-implant control for Exp 20 (the closed-loop advantage is specific to the energy-aware brains)
+
+The Exp 20 assay, unchanged, on the Exp 17 sw_pays t = 3000 forks (blind low-rate brains, no implant; the forks Exp 19 started from). 40 random live targets per seed with E0 ≥ 0.3 lose 50% of E; T = 150; arms CL / OPEN / FROZEN / twin / clamp0; offspring-inclusive recovery r. Pre-registered in `NIGHTLY_LOG.md` (2026-11-23). Code `mvp/exp21_run.py`, `mvp/analyze21.py`, `mvp/run21_chain.sh`, `tests/test_exp21.py`; tables/figure in `figures/exp21/`.
+
+- **No CL advantage without the implant (n = 9, clamp0 exact):** r CL +0.717, OPEN +0.684, FROZEN +0.727 (twin noise floor +1.010); A21 = r_CL − r_OPEN **+0.033 [−0.125, +0.191]**, B21 = r_CL − r_FROZEN **−0.010 [−0.204, +0.184]**.
+- **Specificity, paired by seed with Exp 20:** ΔA = A20 − A21 **+0.371 [+0.154, +0.587]** (9/9), ΔB = B20 − B21 **+0.378 [+0.061, +0.695]** (7/9). Pre-registered verdict: specific to the energy-aware (implanted) brains, not produced by the world.
+- CL recovery is the same in both populations; the passive arms are what is worse with the implant (replayed actions or unperturbed sensed E make the threshold rule fire unaffordable births), consistent with Exp 20's reproduction-timing mechanism.
+- Limit: the two populations also differ in age and E distribution (Exp 20 target E0 lower by 0.35); within E0 ≤ 0.8, ΔA holds (+0.344 [+0.119, +0.569]) but ΔB's CI includes 0 (+0.326 [−0.025, +0.677]).
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
