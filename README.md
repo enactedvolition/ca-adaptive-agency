@@ -396,6 +396,14 @@ The Exp 20 assay, unchanged, on the Exp 17 sw_pays t = 3000 forks (blind low-rat
 - CL recovery is the same in both populations; the passive arms are what is worse with the implant (replayed actions or unperturbed sensed E make the threshold rule fire unaffordable births), consistent with Exp 20's reproduction-timing mechanism.
 - Limit: the two populations also differ in age and E distribution (Exp 20 target E0 lower by 0.35); within E0 ≤ 0.8, ΔA holds (+0.344 [+0.119, +0.569]) but ΔB's CI includes 0 (+0.326 [−0.025, +0.677]).
 
+## Experiment 22: foraging recovery with births disabled by construction (fails the decision rule: no energy-conditioned recovery)
+
+The Exp 20/21 energy-drop assay (40 targets, 50% E drop, T = 150; arms CL / OPEN / FROZEN / twin / clamp0) with the **targets' rep action forced off in every arm** (sim13's existing `ctl["rep_use"]/["rep_over"]` hook; rest of the world unchanged, so ecology is as in Exp 20/21), scored on own E only (r_E). Populations: Exp 20 TRUE t = 1500 (primary), no-implant Exp 17 sw_pays t = 3000 (secondary), and an age-matched Exp 19 SHAM t = 1500 rerun (check). Pre-registered in `NIGHTLY_LOG.md` (2026-11-24). Code `mvp/exp22_run.py`, `mvp/analyze22.py`, `mvp/run22_chain.sh`, `mvp/run22_sham_chain.sh`, `tests/test_exp22.py`; tables/figure in `figures/exp22/`.
+
+- **Primary FAIL (TRUE, n = 9; clamp0 exact, 0 target births in every arm):** A = r_E,CL − r_E,OPEN **+0.237 [+0.076, +0.398]** (7/9) but B = r_E,CL − r_E,FROZEN **+0.004 [−0.124, +0.131]** (6/9). Closed loop beats replaying the unperturbed actions, but a brain blind to its own energy drop recovers just as well, so the recovery is not energy-conditioned.
+- Same pattern without the implant: control A +0.312 [+0.158, +0.466] (9/9), B +0.037 [−0.137, +0.211]; SHAM A +0.213 [+0.114, +0.313] (9/9), B −0.103 [−0.283, +0.077]. TRUE − control ΔA −0.074 [−0.350, +0.202], ΔB −0.034 [−0.313, +0.245]; TRUE − SHAM ΔA +0.024 [−0.193, +0.241], ΔB +0.107 [−0.108, +0.322].
+- Reading: the only active recovery found so far remains Exp 20's reproduction withholding by a hand-implanted rule. The CL-over-OPEN advantage is generic to all three populations and does not run through the energy sense; which channel carries it is untested.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
