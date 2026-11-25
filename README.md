@@ -404,6 +404,24 @@ The Exp 20/21 energy-drop assay (40 targets, 50% E drop, T = 150; arms CL / OPEN
 - Same pattern without the implant: control A +0.312 [+0.158, +0.466] (9/9), B +0.037 [−0.137, +0.211]; SHAM A +0.213 [+0.114, +0.313] (9/9), B −0.103 [−0.283, +0.077]. TRUE − control ΔA −0.074 [−0.350, +0.202], ΔB −0.034 [−0.313, +0.245]; TRUE − SHAM ΔA +0.024 [−0.193, +0.241], ΔB +0.107 [−0.108, +0.322].
 - Reading: the only active recovery found so far remains Exp 20's reproduction withholding by a hand-implanted rule. The CL-over-OPEN advantage is generic to all three populations and does not run through the energy sense; which channel carries it is untested.
 
+## Experiment 23: which action channel carries A = r_CL − r_OPEN? (movement replay, weakly; not an agency result)
+
+Exp 22's births-off assay plus partial-OPEN arms that replay ref's recorded actions on only a channel subset (new additive sim13 hook `ctl["amask"]`; the rest stays closed-loop): MOVE (thrust), EAT, SOC (share/attack, signal, bond, build), MOVEEAT. Pre-registered in `NIGHTLY_LOG.md` (2026-11-25). Validity exact in all 27 (pop, seed) runs: CL and full OPEN reproduce Exp 22 bit-for-bit, clamp0 of every partial arm equals ref, 0 target births. Code `mvp/exp23_run.py`, `mvp/analyze23.py`, `mvp/run23_chain.sh`, `tests/test_exp23.py`; tables/figure in `figures/exp23/`.
+
+| TRUE t = 1500, n = 9 | mean [95% t CI] | # > 0 |
+|---|---|---|
+| full A = CL − OPEN (= Exp 22) | +0.237 [+0.076, +0.398] | 7/9 |
+| A_move = CL − MOVE | +0.218 [+0.012, +0.424] | 6/9 |
+| A_eat = CL − EAT | +0.009 [−0.104, +0.122] | 4/9 |
+| A_soc = CL − SOC | +0.015 [−0.161, +0.191] | 4/9 |
+| A_moveeat = CL − MOVEEAT | +0.237 [+0.046, +0.427] | 7/9 |
+| interaction I = A − ΣA_X | −0.005 [−0.281, +0.272] | 5/9 |
+
+- **Pre-registered rule fires "move"** (A_move lower bound > 0), but only just (+0.012; two channels examined, no multiplicity correction): call it weak. The rest of A is not in eat or social/build; the sum of the three single-channel effects is very noisy (CI ±0.4) so the interaction residual is uninformative rather than ≈ 0.
+- No-implant control: A_move +0.234 [+0.068, +0.400], A_eat −0.058 [−0.274, +0.159], A_soc +0.172 [−0.010, +0.355]. Age-matched SHAM: A_move +0.130 [−0.029, +0.289], A_eat −0.177 [−0.349, −0.004] (uncorrected, one of many looks), A_soc −0.022. Same qualitative picture (movement replay carries most of A) but not sharply.
+- **What this does and does not say.** r_CL ≈ 0.95 and the unperturbed twin's r ≈ 1.1 (noise |1−r| ≈ 0.24): closed-loop already looks like the no-drop reference, so A mostly measures how much *replaying a fixed thrust sequence on a diverged body* hurts foraging, i.e. generic closed- vs open-loop motor control. Exp 22's B ≈ 0 (no dependence on the sensed energy) still stands. **No agency claim:** active recovery does not beat passive recovery here; there is no energy-conditioned foraging feedback to build a test on.
+- Limits: one world, 40 targets/seed, 9 seeds, per-seed CIs wide (twin noise ±0.24), replay applied only while the slot holds the target's uid.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
