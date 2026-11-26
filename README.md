@@ -422,6 +422,22 @@ Exp 22's births-off assay plus partial-OPEN arms that replay ref's recorded acti
 - **What this does and does not say.** r_CL ≈ 0.95 and the unperturbed twin's r ≈ 1.1 (noise |1−r| ≈ 0.24): closed-loop already looks like the no-drop reference, so A mostly measures how much *replaying a fixed thrust sequence on a diverged body* hurts foraging, i.e. generic closed- vs open-loop motor control. Exp 22's B ≈ 0 (no dependence on the sensed energy) still stands. **No agency claim:** active recovery does not beat passive recovery here; there is no energy-conditioned foraging feedback to build a test on.
 - Limits: one world, 40 targets/seed, 9 seeds, per-seed CIs wide (twin noise ±0.24), replay applied only while the slot holds the target's uid.
 
+## Experiment 24: state-matched passive movement control (CL does not beat it; Exp 23's A_move was a stale-replay artifact)
+
+Exp 22/23's births-off own-E assay plus a **gradient-conditioned open loop (GC)**: the target's thrust is tanh(map · current sensed resource gradient), the map (3×2, least squares in arctanh space) fitted per target on its own unperturbed ref run, so it reacts to the current state but cannot see energy; eat and social/build stay closed loop. Its baseline is its own no-drop run (GC0), so r*_GC measures what the drop costs under that policy. Secondary GCX: same, map on all non-energy senses. New additive sim13 hook `ctl["tuse"]/ctl["tmap"]` (absent → unchanged; `tests/test_exp24.py`). Pre-registered in `NIGHTLY_LOG.md` (2026-11-26). Validity exact in all 27 (pop, seed) runs: CL, OPEN, FROZEN reproduce Exp 22 and MOVE reproduces Exp 23 bit-for-bit, clamp0 equals ref, 0 target births; hook check on real runs |thrust − tanh(x·map)| ≤ 7e-7. Code `mvp/exp24_run.py`, `mvp/analyze24.py`, `mvp/run24_chain.sh`; tables/figure in `figures/exp24/`.
+
+| TRUE t = 1500, n = 9 | mean [95% t CI] | # > 0 |
+|---|---|---|
+| **A_GC = r_CL − r*_GC (primary)** | −0.104 [−0.358, +0.151] | 2/9 |
+| B = r_CL − r_FROZEN (= Exp 22) | +0.004 [−0.124, +0.131] | 6/9 |
+| A_GCX = r_CL − r*_GCX | +0.041 [−0.114, +0.197] | 5/9 |
+| A_move = r_CL − r_MOVE (= Exp 23) | +0.218 [+0.012, +0.424] | 6/9 |
+| r*_GC − r_MOVE | +0.322 [+0.072, +0.572] | 7/9 |
+
+- **Pre-registered verdict: outcome 3.** Closed loop does not beat a state-matched, energy-blind movement controller (point estimate negative); swapping stale thrust replay for gradient-conditioned thrust removes all of A_move. Same in the no-implant control (A_GC +0.134 [−0.137, +0.405], A_GCX +0.071 [−0.033, +0.176]) and SHAM (A_GC −0.059 [−0.294, +0.176]).
+- GC is not a strawman: thrust-fit median R² 0.52 (GCX 0.73) and, without the drop, GC0 forages no worse than the brain (r_E(GC0 vs ref) +1.04, survival at T 0.61 vs 0.54).
+- **No agency claim.** In this assay there is no closed-loop recovery beyond passive recovery: CL ≈ FROZEN (Exp 22) and CL ≈ GC. Limits: a null, not an equivalence (CIs ±0.25, about the twin noise floor); one world, 40 targets/seed, 9 seeds; GC0 is a separate chaotic trajectory, so r* carries baseline noise as well.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

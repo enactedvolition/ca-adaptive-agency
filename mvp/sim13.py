@@ -35,6 +35,7 @@
 #   ctl["aclamp"] (N,) bool, ctl["aover"] (N,8): replace the actions of clamped agents with a replayed action vector
 #                                                (passive control: the body does what the unperturbed twin did).
 #   ctl["amask"] (N,8) bool (Exp 23, optional): with aclamp, replace only the masked action channels; absent = full-vector clamp.
+#   ctl["tuse"] (N,) bool, ctl["tmap"] (N,16,2) (Exp 24, optional): thrust of tuse agents replaced by tanh(x . tmap) (energy-blind map of current senses).
 #   ctl["e_off"]  (N,)  float: add an offset to the *sensed* energy channel only (sensor-blind control).
 """sim v9 = sim v8 + mass-based ownership claim and an exact one-step private-return instrument (Experiment 11).
   Cfg.claim_mode = "share" reproduces sim8 exactly. claim_mode = "mass" replaces the claim with
@@ -335,6 +336,8 @@ def make(cfg: Cfg):
         if ctl is not None:                     # Exp 14 intervention: clamp chosen agents' actions to a replayed sequence
             _cm = ctl["aclamp"][:, None] if "amask" not in ctl else (ctl["aclamp"][:, None] & ctl["amask"])   # Exp 23: optional per-channel mask (absent -> unchanged)
             a = jnp.where(_cm, ctl["aover"], a)
+        if ctl is not None and "tuse" in ctl:   # Exp 24: gradient-conditioned open loop: thrust of tuse agents = tanh(x . tmap) (absent -> unchanged)
+            a = a.at[:, :2].set(jnp.where(ctl["tuse"][:, None], jnp.tanh(jnp.einsum("ni,nic->nc", x, ctl["tmap"])), a[:, :2]))
         thrust, eat, rep = a[:, :2], (a[:, 2] + 1) / 2, a[:, 3]
         if ctl is not None and "eat_use" in ctl:   # Exp 15 hand-coded payoff check: override the eat action
             eat = jnp.where(ctl["eat_use"], ctl["eat_over"], eat)
