@@ -438,6 +438,21 @@ Exp 22/23's births-off own-E assay plus a **gradient-conditioned open loop (GC)*
 - GC is not a strawman: thrust-fit median R² 0.52 (GCX 0.73) and, without the drop, GC0 forages no worse than the brain (r_E(GC0 vs ref) +1.04, survival at T 0.61 vs 0.54).
 - **No agency claim.** In this assay there is no closed-loop recovery beyond passive recovery: CL ≈ FROZEN (Exp 22) and CL ≈ GC. Limits: a null, not an equivalence (CIs ±0.25, about the twin noise floor); one world, 40 targets/seed, 9 seeds; GC0 is a separate chaotic trajectory, so r* carries baseline noise as well.
 
+## Experiment 25: a task where the energy drop changes the optimal action (starvation–predation pay-check passes; the own-E assay misses a known controller)
+
+New additive sim13 hook `ctl["haz"]/ctl["hu"]`: a live agent dies with probability haz · eat, so foraging exposes you to predation (absent → unchanged; `tests/test_exp25.py` checks the off path against the pre-change sim13 from git, bit for bit). With predation, a full reserve makes foraging a pure risk and an empty one makes resting a starvation risk, so the best eat effort depends on own E. Exp 20 TRUE t = 1500 forks, births off for everyone (the currency is own survival, which is what the drop assay scores), haz = 0.004, T = 300, brains drive everything except eat. COND (eat = 1 iff own E < 0.40, the fork median) on one uid parity of the cohort, a comparator on the other, both parities averaged. Pre-registered in `NIGHTLY_LOG.md` (2026-11-27). Code `mvp/exp25_run.py`, `mvp/exp25_assay.py`, `mvp/analyze25.py`, `mvp/run25_chain.sh`, `mvp/run25_assay_chain.sh`; tables/figure in `figures/exp25/`.
+
+| survival at T = 300, n = 9 | mean [95% t CI] | # > 0 |
+|---|---|---|
+| **D\* = S_COND − S_BLIND(e\* = 0.5), best of 11 constant efforts (primary)** | +0.125 [+0.086, +0.165] | 9/9 |
+| **D_sham = S_COND − S_SHAM (rule fed a random other agent's E)** | +0.132 [+0.110, +0.154] | 9/9 |
+| S_COND − S_BRAIN (evolved brains' own eating) | +0.157 [+0.130, +0.185] | 9/9 |
+| null, haz = 0: S_COND − S_BLIND(e\* = 1.0) | −0.029 [−0.046, −0.013] | 1/9 |
+
+- **Pre-registered pay-check PASSES** (margin +0.05, both CIs > 0). COND beats every blind effort. With no predation it loses to always-eat, so the gain comes from the trade-off. Blind at e\* starves more (starvation deaths 0.47 vs 0.30) while survivors bank E it never needs (1.55 vs 0.47).
+- **Assay positive control (pre-planned): the Exp 22 drop assay, run on a population known to use energy feedback (COND), does NOT detect it by the pre-registered rule:** A = r_CL − r_OPEN +0.082 [+0.004, +0.159], B = r_CL − r_FROZEN −0.046 [−0.170, +0.079] (40 targets/seed; validity exact). The controller reacts (eat effort over steps 0–30 after the drop: CL 0.84 vs OPEN 0.62, FROZEN 0.64), but own-E recovery is the wrong yardstick here: eating more after the drop buys survival at the price of predation exposure. Post hoc (exploratory), with 200 targets/seed and target survival as the read-out, the assay does detect it: A_surv +0.041 [+0.008, +0.073], B_surv +0.087 [+0.047, +0.127], while r_E B is still null (−0.022 [−0.122, +0.079]).
+- **No agency claim.** COND is a hand-coded rule; nothing was evolved, so no Price decomposition applies. Caveats: the comparator's eating changes COND's food (within-world pairing; at e\* the two groups eat about the same, 0.50 vs 0.48); one hazard level, one θ, births off. The Exp 22–24 nulls used an own-E metric with 40 targets, which tonight's positive control shows can miss a real feedback controller.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

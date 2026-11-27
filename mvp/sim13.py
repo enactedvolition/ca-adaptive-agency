@@ -36,6 +36,7 @@
 #                                                (passive control: the body does what the unperturbed twin did).
 #   ctl["amask"] (N,8) bool (Exp 23, optional): with aclamp, replace only the masked action channels; absent = full-vector clamp.
 #   ctl["tuse"] (N,) bool, ctl["tmap"] (N,16,2) (Exp 24, optional): thrust of tuse agents replaced by tanh(x . tmap) (energy-blind map of current senses).
+#   ctl["haz"] scalar/(N,), ctl["hu"] (N,) uniforms (Exp 25, optional): live agent dies this step iff hu < haz * eat (foraging predation risk).
 #   ctl["e_off"]  (N,)  float: add an offset to the *sensed* energy channel only (sensor-blind control).
 """sim v9 = sim v8 + mass-based ownership claim and an exact one-step private-return instrument (Experiment 11).
   Cfg.claim_mode = "share" reproduces sim8 exactly. claim_mode = "mass" replaces the claim with
@@ -420,6 +421,8 @@ def make(cfg: Cfg):
         c_es = s["c_es"] + esstep; c_esa = s["c_esa"] + jnp.abs(esstep)
         c_esr = s["c_esr"] + esrstep; c_esra = s["c_esra"] + jnp.abs(esrstep)
         c_prem = s["c_prem"] + premstep
+        if ctl is not None and "haz" in ctl:    # Exp 25: foraging predation hazard: a live agent dies w.p. haz*eat (uniforms hu supplied by caller; absent -> unchanged)
+            E = jnp.where(alive & (ctl["hu"] < ctl["haz"] * eat), 0.0, E)
         alive_before = alive
         alive = alive & (E > 0)
         # ---- fields
