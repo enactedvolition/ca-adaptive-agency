@@ -6,6 +6,8 @@ The question is whether anything here earns the words **edge of chaos**, **agenc
 
 Design and full results: [`ARCHITECTURE.md`](ARCHITECTURE.md). Licence: Apache-2.0.
 
+**Read first (2026-11-28 audit):** [`docs/AUDIT.md`](docs/AUDIT.md) re-grades every experiment (Exp 0–27); most nulls below are *uninformative*, not evidence of absence, and the "active beats passive" rule is retired as an agency criterion. Framework: [`docs/EPISTEMOLOGY.md`](docs/EPISTEMOLOGY.md); fix order: [`docs/REBUILD_PLAN.md`](docs/REBUILD_PLAN.md).
+
 ## Quickstart
 
 You need Python 3.11–3.13. No GPU is needed.
