@@ -1,6 +1,29 @@
 # Rebuild plan: ordered, recursive, foundations first
 
-Written 2026-11-28 (Phase 1). **Nothing in this plan has been run.** Each step is gated on the one before it. Framework: [`EPISTEMOLOGY.md`](EPISTEMOLOGY.md). Verdicts being repaired: [`AUDIT.md`](AUDIT.md).
+Written 2026-11-28 (Phase 1). Progress is tracked in the Status checklist below. Each step is gated on the one before it. Framework: [`EPISTEMOLOGY.md`](EPISTEMOLOGY.md). Verdicts being repaired: [`AUDIT.md`](AUDIT.md).
+
+## Status (nightly routine: pick up at the FIRST unchecked step; a step is checked only when every sub-item is)
+
+Numbering note: the 2026-11-28 morning instruction called the harness "step 1" and the signal-use test "step 2"; in this file they are **Step 0** and **Step 1**.
+
+- [ ] **Step 0: instrument integrity**
+  - [x] sim13 `ctl["e_fix_use"]/["e_fix"]` hook; off path == pre-change sim13 bit for bit (tests/test_assay_core.py)
+  - [x] `mvp/assay_core.py` shared arms (ref, cl, open, sense-level frozen, ablate, fixown) + timing contract (module docstring)
+  - [x] identity tests: e_fix absent, clamp0, frozen0, fixown (ablate0), controller clamp0/frozen0, deliberate post-step-lead failure caught
+  - [x] `docs/PREREG_TEMPLATE.md`
+  - [ ] gc-identity test (GC arm not yet in the harness)
+  - [ ] Exp 27 regression through the harness == `report27.json` (needs a src=1 sham hook in the harness policy; ~65 min detached)
+- [ ] Step 1: S0 signal-use metric (pre-registration + known-controller ladder validation)
+- [ ] Step 2: input-ablation value V
+- [ ] Step 3: fresh lineages
+- [ ] Step 4: re-test evolved populations (TOST)
+- [ ] Step 5: selection-detection calibration
+- [ ] Step 6: kick assay retire/rebuild
+- [ ] Step 7: births-on calibration
+- [ ] Step 8: dark rooms / niche
+- [ ] Step 9: v2 proxies
+- [ ] Step 10: world where feedback pays
+- [ ] Step 11: higher levels
 
 ## How "foundations first" is ordered
 

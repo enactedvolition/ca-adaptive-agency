@@ -38,6 +38,8 @@
 #   ctl["tuse"] (N,) bool, ctl["tmap"] (N,16,2) (Exp 24, optional): thrust of tuse agents replaced by tanh(x . tmap) (energy-blind map of current senses).
 #   ctl["haz"] scalar/(N,), ctl["hu"] (N,) uniforms (Exp 25, optional): live agent dies this step iff hu < haz * eat (foraging predation risk).
 #   ctl["e_off"]  (N,)  float: add an offset to the *sensed* energy channel only (sensor-blind control).
+#   ctl["e_fix_use"] (N,) bool, ctl["e_fix"] (N,) float (rebuild step 0, optional): set channel 8 of flagged agents EXACTLY to e_fix
+#     (channel units, log1p(E)-0.7 scale; overrides blind). Used by assay_core FROZEN (sense-level replay) and ablation. Absent -> unchanged.
 """sim v9 = sim v8 + mass-based ownership claim and an exact one-step private-return instrument (Experiment 11).
   Cfg.claim_mode = "share" reproduces sim8 exactly. claim_mode = "mass" replaces the claim with
     claim_i = min(guard * own_i / (own_i + w_own), claim_cap),   own_i = Adep[i, c] (i's own lifetime deposit in its cell)
@@ -308,6 +310,8 @@ def make(cfg: Cfg):
         kin = (nbf * (col_x[cand] * col[:, None, :]).sum(-1)).sum(1) * inv_n * 8
         x = jnp.stack([R_here + cfg.noise_sense * F_here, 10 * gRx, 10 * gRy, F_here, W_here, P_here, 10 * gPx, 10 * gPy,
                        jnp.where(prm["blind"] > 0, jnp.log1p(1.0) - 0.7, jnp.log1p(E + (ctl["e_off"] if ctl is not None else 0.0)) - 0.7), n_nb / 8, mdir[:, 0], mdir[:, 1], msig, kin, jnp.ones(N), prm["pe_sense"] * jnp.log1p(10 * s["mse"])], 1)
+        if ctl is not None and "e_fix_use" in ctl:   # rebuild step 0: exact per-agent sensed-energy value (channel 8 units); absent -> unchanged
+            x = x.at[:, 8].set(jnp.where(ctl["e_fix_use"], ctl["e_fix"], x[:, 8]))
         xe = x[:, EXT]
         # ---- observer: online next-input predictor from own hidden state (NLMS) -> surprisal
         z = jnp.concatenate([s["h"], jnp.ones((N, 1))], 1)
