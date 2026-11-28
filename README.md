@@ -453,6 +453,20 @@ New additive sim13 hook `ctl["haz"]/ctl["hu"]`: a live agent dies with probabili
 - **Assay positive control (pre-planned): the Exp 22 drop assay, run on a population known to use energy feedback (COND), does NOT detect it by the pre-registered rule:** A = r_CL − r_OPEN +0.082 [+0.004, +0.159], B = r_CL − r_FROZEN −0.046 [−0.170, +0.079] (40 targets/seed; validity exact). The controller reacts (eat effort over steps 0–30 after the drop: CL 0.84 vs OPEN 0.62, FROZEN 0.64), but own-E recovery is the wrong yardstick here: eating more after the drop buys survival at the price of predation exposure. Post hoc (exploratory), with 200 targets/seed and target survival as the read-out, the assay does detect it: A_surv +0.041 [+0.008, +0.073], B_surv +0.087 [+0.047, +0.127], while r_E B is still null (−0.022 [−0.122, +0.079]).
 - **No agency claim.** COND is a hand-coded rule; nothing was evolved, so no Price decomposition applies. Caveats: the comparator's eating changes COND's food (within-world pairing; at e\* the two groups eat about the same, 0.50 vs 0.48); one hazard level, one θ, births off. The Exp 22–24 nulls used an own-E metric with 40 targets, which tonight's positive control shows can miss a real feedback controller.
 
+## Experiment 26: the survival yardstick (K = 200 targets) confirms the Exp 22–24 nulls; COND replicates; no agency
+
+Pre-registered (NIGHTLY_LOG 2026-11-28). Primary read-out replaced: **target survival at t = 150 with K = 200 targets/seed** (A_surv = CL − OPEN, B_surv = CL − FROZEN, A_GC = CL − state-matched gradient-conditioned passive arm), paired over 9 seeds, 95% t CI. No sim change. Validity exact (clamp0 == ref bit-for-bit, 0 target births, all runs). `mvp/exp26_cond.py`, `mvp/exp26_pop.py`, `mvp/analyze26.py`, `mvp/run26_chain.sh`; `figures/exp26/`.
+
+| survival diff at t = 150, 50% drop, n = 9 | A_surv (CL − OPEN) | B_surv (CL − FROZEN) | A_GC (CL − GC) | D = ref − CL |
+|---|---|---|---|---|
+| **COND positive control (replication, fresh targets/key)** | +0.031 [+0.003, +0.058] | **+0.072 [+0.041, +0.103]** | n/a | +0.024 [−0.008, +0.056] |
+| TRUE (implant) | +0.067 [+0.044, +0.090] | +0.006 [−0.012, +0.023] | −0.033 [−0.074, +0.008] | +0.039 [+0.017, +0.061] |
+| ctrl (no implant) | +0.017 [−0.003, +0.036] | +0.007 [−0.012, +0.026] | −0.034 [−0.066, −0.001] | +0.036 [+0.018, +0.053] |
+| SHAM (age-matched) | +0.019 [−0.000, +0.038] | +0.003 [−0.011, +0.018] | −0.049 [−0.101, +0.002] | +0.051 [+0.014, +0.088] |
+
+- **The yardstick works:** it detects the known COND controller (pre-registered replication passes) and is informative on the evolved populations (the drop costs survival, D > 0, no ceiling).
+- **No feedback detected in any evolved population** (B_surv ≈ 0 with CI half-width ≈ 0.02, in all three, also at 80% drop and t = 300). TRUE has A_surv > 0, i.e. replaying stale actions hurts, but frozen-input recovery equals closed loop and the energy-blind GC arm survives at least as well as CL (A_GC ≤ 0). So the Exp 22–24 nulls were not a metric artifact. **No agency claim** (active recovery does not beat passive recovery). Caveats: 200 simultaneous targets perturb ~60% of the eligible cohort; no predation; COND hand-coded.
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows
