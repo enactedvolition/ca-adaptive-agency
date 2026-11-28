@@ -467,6 +467,16 @@ Pre-registered (NIGHTLY_LOG 2026-11-28). Primary read-out replaced: **target sur
 - **The yardstick works:** it detects the known COND controller (pre-registered replication passes) and is informative on the evolved populations (the drop costs survival, D > 0, no ceiling).
 - **No feedback detected in any evolved population** (B_surv ≈ 0 with CI half-width ≈ 0.02, in all three, also at 80% drop and t = 300). TRUE has A_surv > 0, i.e. replaying stale actions hurts, but frozen-input recovery equals closed loop and the energy-blind GC arm survives at least as well as CL (A_GC ≤ 0). So the Exp 22–24 nulls were not a metric artifact. **No agency claim** (active recovery does not beat passive recovery). Caveats: 200 simultaneous targets perturb ~60% of the eligible cohort; no predation; COND hand-coded.
 
+## Experiment 27: validating the drop assay on systems with known energy feedback (specific but insensitive; Exp 26's COND "detection" was a FROZEN-arm artifact)
+
+Constructed positive/negative controls only (hand-coded servo ladder P(g) → bang-bang STEP, an ES-trained agent verified by input ablation, energy-blind and sham controls); brains' energy sense clamped so the controller is the only route from energy to action. Score: target survival at t = 150, 200 targets/seed, 50% drop, 5 independent 9-seed replicates, 95% t CIs.
+
+- **False positives: 0/30** on blind controls. **Sensitivity is low:** detection (A and B lower bounds > 0) P0.5 2/5, P1 1/5, P2 1/5, STEP 1/5, others 0/5; pooled B_surv STEP +0.020 [−0.002, +0.042], P1 +0.010 [+0.005, +0.015]. **Minimum detectable feedback: none** in this metric (no-predation ladder, R = 1, does detect: STEP +0.064 [+0.034, +0.094]).
+- **ES agent** uses energy (ablation +0.036 [+0.030, +0.043] survival at T = 300, 9/9) but is **not detected** (B −0.000 [−0.011, +0.011], 0/5).
+- **Post hoc, reproduced to the digit:** Exp 26's COND B_surv +0.072 came from FROZEN being fed the reference's post-step energy (a one-step lead); with the pre-step input the same targets/keys give +0.019 [−0.013, +0.052]. The Exp 22–26 evolved-population B_surv nulls (upper bounds ≤ +0.026) therefore cannot exclude thermostat-strength feedback. No agency claim.
+
+Figure: [`figures/exp27/exp27_dose_response.png`](figures/exp27/exp27_dose_response.png); tables `figures/exp27/tables27.md`. Pre-registration and caveats: `NIGHTLY_LOG.md` (Exp 27).
+
 ## Reproduce
 ```bash
 ./setup.sh   # or setup.ps1 on Windows

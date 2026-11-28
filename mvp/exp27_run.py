@@ -15,6 +15,8 @@ os.environ.setdefault("XLA_FLAGS", "--xla_cpu_multi_thread_eigen=false intra_op_
 T, DROP, E_MIN, HAZ, THETA, B0, TF, K_T = 150, 0.5, 0.3, 0.004, 0.40, 0.5, 1500, 200
 NW = 33; NSPEC = 4 + NW; TPAY = 300
 GAINS = [0.25, 0.5, 1, 2, 4, 8, 16]
+X26 = os.environ.get("EXP27_X26") == "1"   # POST HOC diagnostic: Exp 26 targets rng, key and hazard-draw layout
+LEAD = os.environ.get("EXP27_LEAD") == "1"   # POST HOC diagnostic: FROZEN fed ref POST-step E (Exp 25/26 convention) instead of the pre-step controller input
 SIGHTED = os.environ.get("EXP27_SIGHTED") == "1"   # POST HOC diagnostic only: brains keep their energy sense (blind=0), as in Exp 26
 REPS = [0, 1, 2, 3, 4]; SEEDS = list(range(9))
 
@@ -78,7 +80,7 @@ def ctx():
             u, rh = inputs(c, sp, same, k1)
             u = u.at[tg_j].set(jnp.where(fr_T, ur_t, u[tg_j]))
             ea = ctrl(sp, u, rh); eov_all = ea.at[tg_j].set(jnp.where(cl_T, ea_t, ea[tg_j]))
-            hu = jax.random.uniform(k2, (N,))
+            hu = jax.random.uniform(k if X26 else k2, (N,))
             eo = jnp.zeros(N).at[tg_j].set(jnp.where(fr_T, ur_t - c["E"][tg_j], 0.0)) if SIGHTED else jnp.zeros(N)   # post hoc sighted mode: FROZEN also freezes the brains' sensed E (Exp 26 style)
             ctl = dict(aclamp=jnp.zeros(N, bool).at[tg_j].set(cl_T), aover=jnp.zeros((N, 8)).at[tg_j].set(a_t), e_off=eo,
                        rep_use=jnp.ones(N, bool), rep_over=jnp.full((N,), -1.0), eat_use=same, eat_over=eov_all, haz=haz, hu=hu)
@@ -108,20 +110,20 @@ def load_base(seed):
 
 def targets(base, seed, rep):
     elig = np.nonzero(base["alive"] & (base["E"] >= E_MIN))[0]; assert len(elig) >= K_T
-    return np.sort(np.random.default_rng(27000 + 1000 * rep + seed).choice(elig, size=K_T, replace=False))
+    return np.sort(np.random.default_rng((2626 + seed) if X26 else (27000 + 1000 * rep + seed)).choice(elig, size=K_T, replace=False))
 
 def assay_job(job, nsteps=None):
     name, sp, rep, seed, haz = job
-    tag = f"{name}_h{haz:g}_r{rep}_s{seed}" + ("_sighted" if SIGHTED else ""); path = os.path.join(OUT, f"a27_{tag}.pkl")
+    tag = f"{name}_h{haz:g}_r{rep}_s{seed}" + ("_sighted" if SIGHTED else "") + ("_x26" if X26 else "") + ("_lead" if LEAD else ""); path = os.path.join(OUT, f"a27_{tag}.pkl")
     if nsteps is None and os.path.exists(path): return path, 0.0
     t0 = time.time(); C = ctx(); jnp = C["jnp"]; jax = C["jax"]
     base = load_base(seed); tg = targets(base, seed, rep); tg_j = jnp.asarray(tg, jnp.int32)
-    bj = {k: jnp.asarray(v) for k, v in base.items()}; kx = jax.random.PRNGKey(27500 + 1000 * rep + seed); h = jnp.float32(haz); s1 = jnp.asarray(sp)
+    bj = {k: jnp.asarray(v) for k, v in base.items()}; kx = jax.random.PRNGKey((2700 + seed) if X26 else (27500 + 1000 * rep + seed)); h = jnp.float32(haz); s1 = jnp.asarray(sp)
     z8 = jnp.zeros((T, K_T, 8)); zk = jnp.zeros((T, K_T)); F, Tr = jnp.bool_(False), jnp.bool_(True)
     g = lambda r: {k: np.asarray(v) for k, v in r.items()}
     f = lambda d, cl, fr, a, e, ur: g(C["assay"](bj, kx, tg_j, h, d, cl, fr, a, e, ur, s1))
     ref = f(0.0, F, F, z8, zk, zk - 1)
-    a_ref = jnp.asarray(np.where(ref["alive"][..., None], ref["act"], 0.0)); ea_ref = jnp.asarray(ref["eat"]); u_ref = jnp.asarray(np.where(ref["alive"], ref["u"], -1.0))
+    a_ref = jnp.asarray(np.where(ref["alive"][..., None], ref["act"], 0.0)); ea_ref = jnp.asarray(ref["eat"]); u_ref = jnp.asarray(np.where(ref["alive"], ref["E"] if LEAD else ref["u"], -1.0))
     arms = dict(ref=ref, cl=f(1.0, F, F, z8, zk, zk - 1), open=f(1.0, Tr, F, a_ref, ea_ref, zk - 1), frozen=f(1.0, F, Tr, z8, zk, u_ref), clamp0=f(0.0, Tr, F, a_ref, ea_ref, zk - 1))
     cl0 = np.clip((base["pos"][tg] / C["cs"]).astype(np.int32), 0, C["G"] - 1); rh0 = np.asarray(base["Rf"])[cl0[:, 0], cl0[:, 1]]
     E0 = base["E"][tg].astype(np.float64)

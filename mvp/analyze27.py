@@ -13,7 +13,7 @@ def ci(v):
 f3 = lambda c: f"{c[0]:+.3f} [{c[1]:+.3f}, {c[2]:+.3f}]"
 D = {}
 for f in glob.glob(os.path.join(R, "a27_*.pkl")):
-    d = pickle.load(open(f, "rb")); D.setdefault((d["name"] + ("@sighted" if d.get("sighted") else ""), d["haz"]), {}).setdefault(d["rep"], {})[d["seed"]] = d
+    d = pickle.load(open(f, "rb")); D.setdefault((d["name"] + ("@sighted" if d.get("sighted") else "") + ("@x26" if "_x26" in f else "") + ("@lead" if "_lead" in f else ""), d["haz"]), {}).setdefault(d["rep"], {})[d["seed"]] = d
 sv = lambda d, a: float(d["arms"][a]["alive"][149].mean())
 ORDER = ["P0", "P0.25", "P0.5", "P1", "P2", "P4", "P8", "P16", "STEP", "ES", "CONST0.8", "SHAM_STEP", "SHAM_P4", "ES_BLIND", "ES_ABL"]
 NOMG = {"P0": 0, **{f"P{g}": g for g in X.GAINS}}
@@ -44,7 +44,7 @@ def gt(n):
     n = n.split("@")[0]
     return "blind (neg. control)" if n in X.BLIND else ("trained, uses E?" if n == "ES" else "feedback (pos. control)")
 for haz, title, ORD in ((0.004, "PRIMARY: predation world (haz = 0.004), R = 5 replicates × 9 seeds", ORDER), (0.0, "SECONDARY: no-predation world (haz = 0), R = 1", ORDER),
-                        (0.004, "POST HOC diagnostic: brains' energy sense left ON (blind = 0, as in Exp 26), haz = 0.004, R = 2", ["STEP@sighted", "P1@sighted", "P0@sighted"])):
+                        (0.004, "POST HOC diagnostics: brains' energy sense left ON (blind = 0, as in Exp 26), haz = 0.004. @sighted: R = 2 fresh draws; @x26: Exp 26 targets/key/hazard draws (R = 1); @lead: FROZEN fed ref POST-step E, the Exp 25/26 convention (R = 1)", ["STEP@sighted", "P1@sighted", "P0@sighted", "STEP@sighted@x26", "P0@sighted@x26", "STEP@sighted@x26@lead", "P0@sighted@x26@lead"])):
     L.append(f"\n## {title}\n\n" + H)
     for n in ORD:
         o = summarise(n, haz)
