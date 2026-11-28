@@ -13,7 +13,7 @@ def ci(v):
 f3 = lambda c: f"{c[0]:+.3f} [{c[1]:+.3f}, {c[2]:+.3f}]"
 D = {}
 for f in glob.glob(os.path.join(R, "a27_*.pkl")):
-    d = pickle.load(open(f, "rb")); D.setdefault((d["name"], d["haz"]), {}).setdefault(d["rep"], {})[d["seed"]] = d
+    d = pickle.load(open(f, "rb")); D.setdefault((d["name"] + ("@sighted" if d.get("sighted") else ""), d["haz"]), {}).setdefault(d["rep"], {})[d["seed"]] = d
 sv = lambda d, a: float(d["arms"][a]["alive"][149].mean())
 ORDER = ["P0", "P0.25", "P0.5", "P1", "P2", "P4", "P8", "P16", "STEP", "ES", "CONST0.8", "SHAM_STEP", "SHAM_P4", "ES_BLIND", "ES_ABL"]
 NOMG = {"P0": 0, **{f"P{g}": g for g in X.GAINS}}
@@ -40,16 +40,19 @@ def summarise(name, haz):
                detA_rate=sum(out["reps"][r]["detA"] for r in reps) / len(reps), pooled_A=pA, pooled_B=pB, pooled_D=pD, G_eff=float(np.nanmean(ge)) if not all(np.isnan(ge)) else float("nan"), surv=surv)
     return out
 H = "| system | ground truth | G_eff | reps | valid | detected (A&B) | B-only det. | pooled A_surv | pooled B_surv | cost of drop D | S ref / CL / OPEN / FROZEN |\n|---|---|---|---|---|---|---|---|---|---|---|"
-def gt(n): return "blind (neg. control)" if n in X.BLIND else ("trained, uses E?" if n == "ES" else "feedback (pos. control)")
-for haz, title in ((0.004, "PRIMARY: predation world (haz = 0.004), R = 5 replicates × 9 seeds"), (0.0, "SECONDARY: no-predation world (haz = 0), R = 1")):
+def gt(n):
+    n = n.split("@")[0]
+    return "blind (neg. control)" if n in X.BLIND else ("trained, uses E?" if n == "ES" else "feedback (pos. control)")
+for haz, title, ORD in ((0.004, "PRIMARY: predation world (haz = 0.004), R = 5 replicates × 9 seeds", ORDER), (0.0, "SECONDARY: no-predation world (haz = 0), R = 1", ORDER),
+                        (0.004, "POST HOC diagnostic: brains' energy sense left ON (blind = 0, as in Exp 26), haz = 0.004, R = 2", ["STEP@sighted", "P1@sighted", "P0@sighted"])):
     L.append(f"\n## {title}\n\n" + H)
-    for n in ORDER:
+    for n in ORD:
         o = summarise(n, haz)
         if o is None: continue
         rep["systems"][f"{n}_h{haz:g}"] = o; s = o["surv"]
         L.append(f"| {n} | {gt(n)} | {o['G_eff']:.3f} | {o['n_reps']} | {o['valid']} | {o['det_rate']*o['n_reps']:.0f}/{o['n_reps']} | {o['detB_rate']*o['n_reps']:.0f}/{o['n_reps']} | {f3(o['pooled_A'])} | {f3(o['pooled_B'])} | {f3(o['pooled_D'])} | {s['ref']:.3f} / {s['cl']:.3f} / {s['open']:.3f} / {s['frozen']:.3f} |")
     L.append("\nPer-replicate B_surv (95% t CI, n = 9):\n")
-    for n in ORDER:
+    for n in ORD:
         o = rep["systems"].get(f"{n}_h{haz:g}")
         if o: L.append(f"- {n}: " + "; ".join(f"r{r} B {f3(v['B'])} A {f3(v['A'])}{' **DET**' if v['detected'] else ''}" for r, v in o["reps"].items()))
 S = rep["systems"]; P = lambda n: S.get(f"{n}_h0.004")

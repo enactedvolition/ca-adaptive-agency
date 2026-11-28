@@ -15,6 +15,7 @@ os.environ.setdefault("XLA_FLAGS", "--xla_cpu_multi_thread_eigen=false intra_op_
 T, DROP, E_MIN, HAZ, THETA, B0, TF, K_T = 150, 0.5, 0.3, 0.004, 0.40, 0.5, 1500, 200
 NW = 33; NSPEC = 4 + NW; TPAY = 300
 GAINS = [0.25, 0.5, 1, 2, 4, 8, 16]
+SIGHTED = os.environ.get("EXP27_SIGHTED") == "1"   # POST HOC diagnostic only: brains keep their energy sense (blind=0), as in Exp 26
 REPS = [0, 1, 2, 3, 4]; SEEDS = list(range(9))
 
 def w_init():
@@ -52,7 +53,7 @@ _C = {}
 def ctx():
     if "w" in _C: return _C
     import jax, jax.numpy as jnp, exp19_run as X
-    cfg, chunk_one, consts, prm, tmpl, off = X.world(); prm = dict(prm); prm["blind"] = jnp.float32(1.0)
+    cfg, chunk_one, consts, prm, tmpl, off = X.world(); prm = dict(prm); prm["blind"] = jnp.float32(0.0 if SIGHTED else 1.0)
     step = consts["step"]; N = cfg.N; G = cfg.G; cs = cfg.L / G
     def ctrl(sp, u, rh):      # sp (N, NSPEC)
         kind, g, b, src = sp[:, 0], sp[:, 1], sp[:, 2], sp[:, 3]; w = sp[:, 4:]
@@ -78,7 +79,8 @@ def ctx():
             u = u.at[tg_j].set(jnp.where(fr_T, ur_t, u[tg_j]))
             ea = ctrl(sp, u, rh); eov_all = ea.at[tg_j].set(jnp.where(cl_T, ea_t, ea[tg_j]))
             hu = jax.random.uniform(k2, (N,))
-            ctl = dict(aclamp=jnp.zeros(N, bool).at[tg_j].set(cl_T), aover=jnp.zeros((N, 8)).at[tg_j].set(a_t), e_off=jnp.zeros(N),
+            eo = jnp.zeros(N).at[tg_j].set(jnp.where(fr_T, ur_t - c["E"][tg_j], 0.0)) if SIGHTED else jnp.zeros(N)   # post hoc sighted mode: FROZEN also freezes the brains' sensed E (Exp 26 style)
+            ctl = dict(aclamp=jnp.zeros(N, bool).at[tg_j].set(cl_T), aover=jnp.zeros((N, 8)).at[tg_j].set(a_t), e_off=eo,
                        rep_use=jnp.ones(N, bool), rep_over=jnp.full((N,), -1.0), eat_use=same, eat_over=eov_all, haz=haz, hu=hu)
             c2 = step(c, prm, ctl)
             own = c2["alive"][tg_j] & (c2["uid"][tg_j] == uid0[tg_j])
@@ -110,7 +112,7 @@ def targets(base, seed, rep):
 
 def assay_job(job, nsteps=None):
     name, sp, rep, seed, haz = job
-    tag = f"{name}_h{haz:g}_r{rep}_s{seed}"; path = os.path.join(OUT, f"a27_{tag}.pkl")
+    tag = f"{name}_h{haz:g}_r{rep}_s{seed}" + ("_sighted" if SIGHTED else ""); path = os.path.join(OUT, f"a27_{tag}.pkl")
     if nsteps is None and os.path.exists(path): return path, 0.0
     t0 = time.time(); C = ctx(); jnp = C["jnp"]; jax = C["jax"]
     base = load_base(seed); tg = targets(base, seed, rep); tg_j = jnp.asarray(tg, jnp.int32)
@@ -125,7 +127,7 @@ def assay_job(job, nsteps=None):
     E0 = base["E"][tg].astype(np.float64)
     geff = float(np.mean((policy_np(sp, 0.5 * E0, rh0) - policy_np(sp, E0, rh0)) / (0.5 * E0))) if sp[3] != 1 else float("nan")
     keep = {a: {k: v for k, v in arms[a].items() if k != "act"} for a in arms}
-    res = dict(name=name, spec=sp, rep=rep, seed=seed, haz=haz, tg=tg, E0=E0, G_eff=geff,
+    res = dict(sighted=SIGHTED, name=name, spec=sp, rep=rep, seed=seed, haz=haz, tg=tg, E0=E0, G_eff=geff,
                clamp0_exact=bool(np.array_equal(arms["clamp0"]["E"], ref["E"]) and np.array_equal(arms["clamp0"]["alive"], ref["alive"])),
                frozen_eq_cl=bool(np.array_equal(arms["frozen"]["E"], arms["cl"]["E"]) and np.array_equal(arms["frozen"]["alive"], arms["cl"]["alive"])),
                births=int(sum(arms[a]["births"].sum() for a in arms)), arms=keep, secs=time.time() - t0)
