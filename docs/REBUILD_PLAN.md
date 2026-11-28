@@ -13,7 +13,10 @@ Numbering note: the 2026-11-28 morning instruction called the harness "step 1" a
   - [x] `docs/PREREG_TEMPLATE.md`
   - [ ] gc-identity test (GC arm not yet in the harness)
   - [ ] Exp 27 regression through the harness == `report27.json` (needs a src=1 sham hook in the harness policy; ~65 min detached)
-- [ ] Step 1: S0 signal-use metric (pre-registration + known-controller ladder validation)
+- [ ] **Step 1: S0 signal-use metric**
+  - [x] phase A pre-registration (NIGHTLY_LOG, 10ed9ea) and known-controller ladder validation: gate PASS (`mvp/s0_ladder.py`, `figures/s0_ladder/`)
+  - [ ] phase B: unselected-brain null (random-init brains, sighted, eat from brain), FPR ≤ 5% (Clopper–Pearson), MDE in G_eff units; pre-register first
+  - [ ] SHAM_STEP (random-other-agent sense in the harness), held-out ES retraining, Exp 19 implant in RNN form, sighted-brain cells
 - [ ] Step 2: input-ablation value V
 - [ ] Step 3: fresh lineages
 - [ ] Step 4: re-test evolved populations (TOST)

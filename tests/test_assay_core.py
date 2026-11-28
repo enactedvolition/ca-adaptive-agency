@@ -82,8 +82,8 @@ def test_identities_controller_blind_haz_birthsoff(W):
     """External STEP eat controller (Exp 27 style: brains blind, births off, predation on): clamp0 / frozen0 == ref, lead caught."""
     import assay_core as A
     jnp = W["jnp"]; prm = dict(W["prm"]); prm["blind"] = jnp.float32(1.0)
-    pol = lambda u, c: (u < 0.40).astype(jnp.float32)
-    run = A.build(W["step"], prm, W["N"], W["tg"], T, rep_off="all", haz=0.004, policy=pol); s = W["s"]
+    pol = lambda u, c, pp: (u < 0.40).astype(jnp.float32)
+    run = A.build(W["step"], prm, W["N"], W["tg"], T, rep_off="all", haz=0.004, policy=pol, brain_sense=False); s = W["s"]   # brain_sense=True would UN-blind brains (e_fix overrides blind): caught by the sscale(1) identity below
     ref = run(s, "ref")
     assert ref["births"].sum() == 0 and np.array_equal(ref["u"][0], np.asarray(s["E"])[W["tg"]])
     assert A.identical(run(s, "open", ref=ref, drop=0.0), ref, keys=("E", "alive", "act", "eat"))
@@ -92,3 +92,5 @@ def test_identities_controller_blind_haz_birthsoff(W):
     assert not A.identical(run(s, "frozen", ref=ref, drop=0.0, urec=lead), ref, keys=("E", "alive", "act", "eat"))
     fr = run(s, "frozen", ref=ref, drop=0.5); cl = run(s, "cl", drop=0.5)
     m = fr["alive"]; assert np.array_equal(fr["u"][m], ref["u"][m]) and not np.array_equal(cl["u"][0], ref["u"][0])
+    assert A.identical(run(s, "sscale", fix=1.0), ref, keys=("E", "alive", "act", "eat"))      # sensor scale 1 == ref
+    sc = run(s, "sscale", fix=0.5); assert np.allclose(sc["u"][0], 0.5 * np.asarray(s["E"])[W["tg"]]) and np.array_equal(sc["E"][0] > 0, ref["E"][0] > 0)
